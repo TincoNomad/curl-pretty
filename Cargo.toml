@@ -1,0 +1,13 @@
+[package]
+name = "curlp"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+serde_json = "1"
+colored = "3.1"
+atty = "0.2"
+
+[profile.release]
+opt-level = 3
+strip = true
