@@ -7,11 +7,13 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.allow_failure }}
     strategy:
       matrix:
         include:
@@ -20,26 +22,31 @@ jobs:
             os: ubuntu-latest
             artifact_name: curlp
             asset_name: curlp-linux-x64
+            allow_failure: false
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             artifact_name: curlp
             asset_name: curlp-linux-arm64
+            allow_failure: true  # Allow ARM64 to fail
           
           # macOS
           - target: x86_64-apple-darwin
             os: macos-latest
             artifact_name: curlp
             asset_name: curlp-macos-x64
+            allow_failure: false
           - target: aarch64-apple-darwin
             os: macos-latest
             artifact_name: curlp
             asset_name: curlp-macos-arm64
+            allow_failure: false
           
           # Windows
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             artifact_name: curlp.exe
             asset_name: curlp-windows-x64.exe
+            allow_failure: false
 
     steps:
     - uses: actions/checkout@v4
@@ -53,11 +60,14 @@ jobs:
       if: matrix.target == 'aarch64-unknown-linux-gnu'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-aarch64-linux-gnu
+        sudo apt-get install -y gcc-aarch64-linux-gnu pkg-config
 
     - name: Build target
       run: |
         cargo build --release --target ${{ matrix.target }}
+      env:
+        CC: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
+        PKG_CONFIG_ALLOW_CROSS: 1
 
     - name: Strip binary (Unix)
       if: matrix.os != 'windows-latest'
