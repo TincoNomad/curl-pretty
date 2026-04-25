@@ -30,7 +30,7 @@ HTTP pretty-printer para tu terminal. Toma la salida cruda de `curl` y la convie
 **Sin necesidad de Rust. Descarga binario precompilado para tu sistema:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/tu-usuario/curlp/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash
 ```
 
 El instalador detecta automáticamente:
@@ -41,7 +41,7 @@ El instalador detecta automáticamente:
 
 ### Opción 2 — Descarga Manual
 
-Ve a [GitHub Releases](https://github.com/tu-usuario/curlp/releases) y descarga:
+Ve a [GitHub Releases](https://github.com/tinconomad/curl-pretty/releases) y descarga:
 
 - `curlp-linux-x64` - Linux 64-bit
 - `curlp-linux-arm64` - Linux ARM64  
@@ -64,8 +64,8 @@ sudo cp curlp-* /usr/local/bin/curlp
 Si tienes Rust instalado:
 
 ```bash
-git clone https://github.com/tu-usuario/curlp
-cd curlp
+git clone https://github.com/tinconomad/curl-pretty
+cd curl-pretty
 cargo build --release
 sudo cp target/release/curlp /usr/local/bin/
 ```

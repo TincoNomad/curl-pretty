@@ -3,7 +3,7 @@ set -e
 
 INSTALL_DIR="${HOME}/.local/bin"
 BINARY="curlp"
-REPO="tu-usuario/curlp"  # ← Cambia esto por tu usuario de GitHub
+REPO="tinconomad/curl-pretty"
 
 echo ""
 echo "  curlp — instalador universal"
