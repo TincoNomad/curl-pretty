@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 use std::time::Instant;
 
 mod curl_parser;
+mod ws_client;
 use curl_parser::CurlCommand;
 
 fn main() {
@@ -35,13 +36,30 @@ fn main() {
         _ => {}
     }
 
-    // ── Modo 2: curlp 'curl ...'  o  curlp curl ... ───────────────────
+    // ── Modo WebSocket: URLs directas ──────────────────────────────────
     let command_str = if args.len() == 2 {
         args[1].clone()
     } else {
         args[1..].join(" ")
     };
 
+    let trimmed = command_str.trim();
+    
+    // URL directa de WebSocket
+    if trimmed.starts_with("ws://") || trimmed.starts_with("wss://") {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(ws_client::connect_ws(trimmed));
+        return;
+    }
+
+    // Comandos tipo wscat -c wss://...
+    if let Some(url) = extract_ws_url(trimmed) {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(ws_client::connect_ws(&url));
+        return;
+    }
+
+    // ── Modo 2: curlp 'curl ...'  o  curlp curl ... ───────────────────
     execute_curl_and_display(&command_str);
 }
 
@@ -406,4 +424,30 @@ mod tests {
         // This should handle responses with redirects
         display_response(redirect_response, 250);
     }
+}
+
+// Extrae URL WebSocket de comandos tipo wscat
+fn extract_ws_url(command: &str) -> Option<String> {
+    let tokens: Vec<&str> = command.split_whitespace().collect();
+    
+    for (i, token) in tokens.iter().enumerate() {
+        match *token {
+            "-c" | "--connect" => {
+                if i + 1 < tokens.len() {
+                    let next = tokens[i + 1];
+                    if next.starts_with("ws://") || next.starts_with("wss://") {
+                        return Some(next.to_string());
+                    }
+                }
+            }
+            _ => {
+                // Buscar URLs WebSocket directamente
+                if token.starts_with("ws://") || token.starts_with("wss://") {
+                    return Some(token.to_string());
+                }
+            }
+        }
+    }
+    
+    None
 }

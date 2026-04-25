@@ -25,35 +25,50 @@ HTTP pretty-printer para tu terminal. Toma la salida cruda de `curl` y la convie
 
 ## Instalación
 
-### Opción 1 — Compilar desde fuente (recomendado)
+### Opción 1 — Instalador Universal (recomendado)
 
-Requiere Rust 1.80+. Si no tienes Rust:
+**Sin necesidad de Rust. Descarga binario precompilado para tu sistema:**
+
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl -sSL https://raw.githubusercontent.com/tu-usuario/curlp/main/install.sh | bash
 ```
+
+El instalador detecta automáticamente:
+- Linux (x64, ARM64) 
+- macOS (Intel, Apple Silicon)
+- Descarga el binario correcto desde GitHub Releases
+- Fallback a compilación si no hay binario disponible
+
+### Opción 2 — Descarga Manual
+
+Ve a [GitHub Releases](https://github.com/tu-usuario/curlp/releases) y descarga:
+
+- `curlp-linux-x64` - Linux 64-bit
+- `curlp-linux-arm64` - Linux ARM64  
+- `curlp-macos-x64` - macOS Intel
+- `curlp-macos-arm64` - macOS Apple Silicon
+- `curlp-windows-x64.exe` - Windows 64-bit
 
 Luego:
 ```bash
-git clone <este-repo>
+# Linux/macOS
+chmod +x curlp-*
+sudo cp curlp-* /usr/local/bin/curlp
+
+# Windows
+# Mueve curlp.exe a un directorio en tu PATH
+```
+
+### Opción 3 — Compilar desde Fuente
+
+Si tienes Rust instalado:
+
+```bash
+git clone https://github.com/tu-usuario/curlp
 cd curlp
 cargo build --release
-```
-
-Instalar globalmente:
-```bash
-# Linux / macOS
 sudo cp target/release/curlp /usr/local/bin/
-# o sin sudo, en tu PATH local:
-cp target/release/curlp ~/.local/bin/
 ```
-
-### Opción 2 — Script de instalación rápida
-
-```bash
-./install.sh
-```
-
-Compila el binario y lo copia a `~/.local/bin/curlp` (asegúrate de que esté en tu PATH).
 
 ---
 
@@ -116,12 +131,42 @@ alias cpost='curlp curl -X POST'
 
 ---
 
-## WebSocket (roadmap)
+## WebSocket
 
-El soporte para WS está planificado. Por ahora puedes usar:
+**¡Nuevo! Soporte WebSocket integrado:**
+
 ```bash
-# websocat (instalar con: cargo install websocat)
-websocat wss://echo.websocket.org
+# Conectar a WebSocket URL
+curlp wss://echo.websocket.org
+curlp ws://localhost:8080/chat
+
+# Comandos estilo wscat también funcionan
+curlp wscat -c wss://echo.websocket.org
+```
+
+Características:
+- **JSON prettifier** automático para mensajes
+- **Prefijos coloreados**: `←` entrante (verde), `→` saliente (cyan)
+- **Interactivo**: Escribe mensajes y presiona Enter
+- **Comando `/quit`** para cerrar conexión
+- **Status de conexión** al iniciar
+
+Ejemplo de sesión:
+```
+↔ wss://echo.websocket.org
+────────────────────────────────────────────────────────────
+✓ Conectado! (HTTP 101)
+────────────────────────────────────────────────────────────
+Escribe mensajes y presiona Enter. /quit para salir.
+
+> hola mundo
+← "hola mundo"
+
+> {"type":"ping","timestamp":123456}
+← {
+     "type": "ping",
+     "timestamp": 123456
+   }
 ```
 
 ---
