@@ -74,6 +74,11 @@ jobs:
       with:
         path: artifacts
 
+    - name: List artifacts
+      run: |
+        echo "Artifact structure:"
+        find artifacts -type f
+
     - name: Create Release
       run: |
         gh release create ${{ github.ref_name }} \
