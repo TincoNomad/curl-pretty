@@ -5,9 +5,21 @@ INSTALL_DIR="${HOME}/.local/bin"
 BINARY="curlp"
 REPO="tinconomad/curl-pretty"
 
-echo ""
-echo "  curlp — universal installer"
-echo "  ──────────────────────────"
+print_banner() {
+  echo -e "\033[90m┌───────────────────────────┐\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀█ █  \033[0m\033[90m           │\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █  \033[0m\033[90m           │\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀\033[0m\033[90m           │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m █▀█ █▀█ █▀▀ ▀█▀ ▀█▀ █ █\033[0m\033[90m   │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m █▀▀ █▀▄ █▀▀  █   █  ▀▄▀ \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m ▀   ▀ ▀ ▀▀▀  ▀   ▀   ▀  \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m└───────────────────────────┘\033[0m"
+  echo ""
+}
+
+print_banner
+echo "  Make your HTTP requests beautiful 💅 ✦  v1.1.0"
+echo "  ───────────────────────────────────────────────"
 echo ""
 
 # Detectar sistema operativo y arquitectura
@@ -47,7 +59,7 @@ download_binary() {
     asset_name="$asset_name.exe"
   fi
   
-  echo "  → Downloading curlp $version for $PLATFORM..."
+  echo "  ➡️  Downloading curlp $version for $PLATFORM..."
   
   local download_url="https://github.com/$REPO/releases/latest/download/$asset_name"
   
@@ -63,7 +75,7 @@ download_binary() {
 # Verificar si Rust está disponible (fallback)
 try_rust_install() {
   if command -v cargo &>/dev/null; then
-    echo "  → Rust detected, compiling from source..."
+    echo "  ➡️ Rust detected, compiling from source..."
     cargo build --release --quiet
     cp "target/release/$BINARY" "$INSTALL_DIR/$BINARY"
     chmod +x "$INSTALL_DIR/$BINARY"
@@ -78,7 +90,7 @@ try_rust_install() {
 detect_platform
 mkdir -p "$INSTALL_DIR"
 
-echo "  → Platform detected: $PLATFORM"
+echo "  ➡️  Platform detected: $PLATFORM"
 
 # Intentar descargar binario, fallback a compilación
 if ! download_binary; then
