@@ -1,6 +1,6 @@
 # curlp
 
-HTTP pretty-printer para tu terminal. Toma la salida cruda de `curl` y la convierte en algo legible — como Postman o Bruno, pero sin salir de la terminal.
+HTTP pretty-printer for your terminal. Takes raw `curl` output and makes it readable — like Postman or Bruno, but without leaving your terminal.
 
 ```
   ✓  HTTP/2 200 OK    142ms
@@ -23,45 +23,45 @@ HTTP pretty-printer para tu terminal. Toma la salida cruda de `curl` y la convie
 }
 ```
 
-## Instalación
+## Installation
 
-### Opción 1 — Instalador Universal (recomendado)
+### Option 1 — Universal Installer (recommended)
 
-**Sin necesidad de Rust. Descarga binario precompilado para tu sistema:**
+**No Rust needed. Downloads precompiled binary for your system:**
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash
 ```
 
-El instalador detecta automáticamente:
-- Linux (x64, ARM64) 
+The installer automatically detects:
+- Linux (x64, ARM64)
 - macOS (Intel, Apple Silicon)
-- Descarga el binario correcto desde GitHub Releases
-- Fallback a compilación si no hay binario disponible
+- Downloads correct binary from GitHub Releases
+- Fallback to compilation if no binary available
 
-### Opción 2 — Descarga Manual
+### Option 2 — Manual Download
 
-Ve a [GitHub Releases](https://github.com/tinconomad/curl-pretty/releases) y descarga:
+Go to [GitHub Releases](https://github.com/tinconomad/curl-pretty/releases) and download:
 
 - `curlp-linux-x64` - Linux 64-bit
-- `curlp-linux-arm64` - Linux ARM64  
+- `curlp-linux-arm64` - Linux ARM64
 - `curlp-macos-x64` - macOS Intel
 - `curlp-macos-arm64` - macOS Apple Silicon
 - `curlp-windows-x64.exe` - Windows 64-bit
 
-Luego:
+Then:
 ```bash
 # Linux/macOS
 chmod +x curlp-*
 sudo cp curlp-* /usr/local/bin/curlp
 
 # Windows
-# Mueve curlp.exe a un directorio en tu PATH
+# Move curlp.exe to a directory in your PATH
 ```
 
-### Opción 3 — Compilar desde Fuente
+### Option 3 — Compile from Source
 
-Si tienes Rust instalado:
+If you have Rust installed:
 
 ```bash
 git clone https://github.com/tinconomad/curl-pretty
@@ -72,107 +72,107 @@ sudo cp target/release/curlp /usr/local/bin/
 
 ---
 
-## Uso
+## Usage
 
-### Modo 1 — Argumento (recomendado)
+### Mode 1 — Argument Mode (recommended)
 
-`curlp` ejecuta el `curl` por ti y prettifica la respuesta:
+`curlp` executes `curl` for you and prettifies the response:
 
 ```bash
-# GET simple
-curlp 'curl https://api.ejemplo.com/users/1'
+# Simple GET
+curlp 'curl https://api.example.com/users/1'
 
-# POST con JSON
-curlp 'curl -X POST https://api.ejemplo.com/users \
+# POST with JSON
+curlp 'curl -X POST https://api.example.com/users \
   -H "Authorization: Bearer <token>" \
-  -d '"'"'{"nombre":"Juan","rol":"admin"}'"'"''
+  -d '"'{"name":"Juan","role":"admin"}'"'"''
 
-# Con flags extra
-curlp 'curl -L -k https://api.interna.com/health'
-curlp 'curl -u usuario:contraseña https://api.ejemplo.com/private'
+# With extra flags
+curlp 'curl -L -k https://api.internal.com/health'
+curlp 'curl -u user:password https://api.example.com/private'
 ```
 
-### Modo 2 — Pipe
+### Mode 2 — Pipe
 
-Si prefieres ejecutar `curl` tú mismo, usa `-si` y pipea:
+If you prefer to execute `curl` yourself, use `-si` and pipe:
 
 ```bash
-curl -si https://api.ejemplo.com/users/1 | curlp
-curl -si -X DELETE https://api.ejemplo.com/users/42 | curlp
+curl -si https://api.example.com/users/1 | curlp
+curl -si -X DELETE https://api.example.com/users/42 | curlp
 ```
 
-> `-s` silencia la barra de progreso, `-i` incluye los headers en stdout.
+> `-s` silences progress bar, `-i` includes headers in stdout.
 
-### Alias recomendados
+### Recommended Aliases
 
-Agrega esto a tu `.bashrc` / `.zshrc`:
+Add this to your `.bashrc` / `.zshrc`:
 
 ```bash
-# Prettifica cualquier curl automáticamente
+# Prettify any curl automatically
 curlp() { command curlp "$@"; }
 
-# O un alias más corto
+# Or a shorter alias
 alias cget='curlp curl'
 alias cpost='curlp curl -X POST'
 ```
 
 ---
 
-## Qué muestra
+## What it shows
 
-| Elemento | Descripción |
+| Element | Description |
 |---|---|
-| **Status** | Código + texto, coloreado: 🟢 2xx · 🟡 3xx · 🔴 4xx/5xx |
-| **Tiempo** | Milisegundos de la petición (modo argumento) |
-| **Headers** | Clave alineada + valor, con clave en cyan |
-| **Body JSON** | Indentado con colores: strings verde, números amarillo, booleans magenta, null rojo |
-| **Body XML** | Árbol indentado con tags en cyan |
-| **Body texto** | Plano, sin modificar |
+| **Status** | Code + text, colored: 🟢 2xx · 🟡 3xx · 🔴 4xx/5xx |
+| **Time** | Request milliseconds (argument mode) |
+| **Headers** | Aligned key + value, with key in cyan |
+| **Body JSON** | Indented with colors: strings green, numbers yellow, booleans magenta, null red |
+| **Body XML** | Tree indented with cyan tags |
+| **Body text** | Plain, unmodified |
 
 ---
 
 ## WebSocket
 
-**¡Nuevo! Soporte WebSocket integrado:**
+**New! Integrated WebSocket support:**
 
 ```bash
-# Conectar a WebSocket URL
+# Connect to WebSocket URL
 curlp wss://echo.websocket.org
 curlp ws://localhost:8080/chat
 
-# Comandos estilo wscat también funcionan
+# wscat-style commands also work
 curlp wscat -c wss://echo.websocket.org
 ```
 
-Características:
-- **JSON prettifier** automático para mensajes
-- **Prefijos coloreados**: `←` entrante (verde), `→` saliente (cyan)
-- **Interactivo**: Escribe mensajes y presiona Enter
-- **Comando `/quit`** para cerrar conexión
-- **Status de conexión** al iniciar
+Features:
+- **Automatic JSON prettifier** for messages
+- **Colored prefixes**: `←` incoming (green), `→` outgoing (cyan)
+- **Interactive**: Type messages and press Enter
+- **`/quit` command** to close connection
+- **Connection status** on startup
 
-Ejemplo de sesión:
+Example session:
 ```
 ↔ wss://echo.websocket.org
 ────────────────────────────────────────────────────────────
-✓ Conectado! (HTTP 101)
+✓ Connected! (HTTP 101)
 ────────────────────────────────────────────────────────────
-Escribe mensajes y presiona Enter. /quit para salir.
+Type messages and press Enter. /quit to exit.
 
-> hola mundo
-← "hola mundo"
+> hello world
+← "hello world"
 
 > {"type":"ping","timestamp":123456}
 ← {
      "type": "ping",
      "timestamp": 123456
-   }
+  }
 ```
 
 ---
 
-## Contribuir
+## Contributing
 
-PRs bienvenidos. El código está en dos módulos:
-- `src/main.rs` — parser de respuesta HTTP y renderizado
-- `src/curl_parser.rs` — tokenizador y reconstrucción del comando curl
+PRs welcome. Code is in two modules:
+- `src/main.rs` — HTTP response parser and rendering
+- `src/curl_parser.rs` — curl command tokenization and reconstruction

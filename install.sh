@@ -6,7 +6,7 @@ BINARY="curlp"
 REPO="tinconomad/curl-pretty"
 
 echo ""
-echo "  curlp — instalador universal"
+echo "  curlp — universal installer"
 echo "  ──────────────────────────"
 echo ""
 
@@ -21,18 +21,18 @@ detect_platform() {
         x86_64) PLATFORM="linux-x64" ;;
         aarch64) PLATFORM="linux-arm64" ;;
         arm64) PLATFORM="linux-arm64" ;;
-        *) echo "  ❌ Arquitectura $ARCH no soportada para Linux"; exit 1 ;;
+        *) echo "  ❌ Architecture $ARCH not supported for Linux"; exit 1 ;;
       esac
       ;;
     darwin)
       case $ARCH in
         x86_64) PLATFORM="macos-x64" ;;
         arm64) PLATFORM="macos-arm64" ;;
-        *) echo "  ❌ Arquitectura $ARCH no soportada para macOS"; exit 1 ;;
+        *) echo "  ❌ Architecture $ARCH not supported for macOS"; exit 1 ;;
       esac
       ;;
     *)
-      echo "  ❌ Sistema operativo $OS no soportado"
+      echo "  ❌ Operating system $OS not supported"
       exit 1
       ;;
   esac
@@ -47,13 +47,13 @@ download_binary() {
     asset_name="$asset_name.exe"
   fi
   
-  echo "  → Descargando curlp $version para $PLATFORM..."
+  echo "  → Downloading curlp $version for $PLATFORM..."
   
   local download_url="https://github.com/$REPO/releases/latest/download/$asset_name"
   
   if ! curl -fsSL "$download_url" -o "$INSTALL_DIR/$BINARY"; then
-    echo "  ❌ Error descargando curlp"
-    echo "    Verifica: https://github.com/$REPO/releases"
+    echo "  ❌ Error downloading curlp"
+    echo "    Check: https://github.com/$REPO/releases"
     exit 1
   fi
   
@@ -63,13 +63,13 @@ download_binary() {
 # Verificar si Rust está disponible (fallback)
 try_rust_install() {
   if command -v cargo &>/dev/null; then
-    echo "  → Rust detectado, compilando desde source..."
+    echo "  → Rust detected, compiling from source..."
     cargo build --release --quiet
     cp "target/release/$BINARY" "$INSTALL_DIR/$BINARY"
     chmod +x "$INSTALL_DIR/$BINARY"
   else
-    echo "  ❌ No se pudo descargar ni compilar curlp"
-    echo "    Instala Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    echo "  ❌ Could not download nor compile curlp"
+    echo "    Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
     exit 1
   fi
 }
@@ -78,26 +78,26 @@ try_rust_install() {
 detect_platform
 mkdir -p "$INSTALL_DIR"
 
-echo "  → Plataforma detectada: $PLATFORM"
+echo "  → Platform detected: $PLATFORM"
 
 # Intentar descargar binario, fallback a compilación
 if ! download_binary; then
-  echo "  ⚠️  Falló descarga, intentando compilación..."
+  echo "  ⚠️  Download failed, trying compilation..."
   try_rust_install
 fi
 
-echo "  ✅ Instalado en $INSTALL_DIR/$BINARY"
+echo "  ✅ Installed in $INSTALL_DIR/$BINARY"
 echo ""
 
 # Verificar PATH
 if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-  echo "  ⚠️  $INSTALL_DIR no está en tu PATH."
-  echo "     Agrega esto a tu .bashrc o .zshrc:"
+  echo "  ⚠️  $INSTALL_DIR is not in your PATH."
+  echo "     Add this to your .bashrc or .zshrc:"
   echo ""
   echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 else
-  echo "  ✅ Listo! Prueba: curlp 'curl https://httpbin.org/get'"
-  echo "  ✅ O WebSocket: curlp wss://echo.websocket.org"
+  echo "  ✅ Ready! Test: curlp 'curl https://httpbin.org/get'"
+  echo "  ✅ Or WebSocket: curlp wss://echo.websocket.org"
   echo ""
 fi

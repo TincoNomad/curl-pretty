@@ -29,7 +29,7 @@
 - `src/curl_parser.rs` - curl command tokenization and reconstruction
 - `tests/integration_tests.rs` - End-to-end tests
 - `install.sh` - Universal installer script
-- `.github/workflows/release.yml` - Multi-platform builds
+- `.github/workflows/release.yml` - Multi-platform builds and releases
 
 ## Development Guidelines
 

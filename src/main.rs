@@ -326,79 +326,78 @@ fn print_xml(xml: &str) {
 fn print_help() {
     let v = env!("CARGO_PKG_VERSION");
     println!();
-    println!("  {} {}  —  HTTP pretty-printer para tu terminal",
+    println!("  {} {}  —  HTTP pretty-printer for your terminal",
         "curlp".cyan().bold(), format!("v{}", v).dimmed());
     println!("  {}", "─".repeat(54).dimmed());
     println!();
-    println!("  {}", "USO".white().bold());
+    println!("  {}", "USAGE MODES".white().bold());
     println!();
     println!("  {}  {}", "curlp".cyan(), "[OPCIONES]".white());
     println!("  {}  {}", "curlp".cyan(), "'curl [opciones] <url>'".white());
     println!("  {}  {}", "curlp".cyan(), "<websocket-url>".white());
     println!("  {}  {}", "curl".cyan(), "-si <url> | curlp".white());
     println!();
-    println!("  {}", "OPCIONES".white().bold());
+    println!("  {}", "OPTIONS".white().bold());
     println!();
-    println!("  {}  {}", "-h, --help".yellow(), "Muestra esta ayuda".white());
-    println!("  {}  {}", "-V, --version".yellow(), "Muestra versión".white());
-    println!("  {}  {}", "--doctor".yellow(), "Diagnostica instalación y PATH".white());
+    println!("  {}  {}", "-h, --help".yellow(), "Show this help".white());
+    println!("  {}  {}", "-V, --version".yellow(), "Show version".white());
+    println!("  {}  {}", "--doctor".yellow(), "Diagnose installation and PATH".white());
     println!();
-    println!("  {}", "MODO HTTP".white().bold());
+    println!("  {}", "HTTP MODE".white().bold());
     println!();
-    println!("  {}  {}", "1. Argumento".green().bold(),
-        "curlp ejecuta curl y prettifica la respuesta".white());
-    println!("     {}", "curlp 'curl https://api.example.com/data'".dimmed());
+    println!("  {}  {}", "1. Argument mode".yellow().bold(),
+        "curlp executes curl and prettifies the response".white());
+    println!("     {}", "pass curl raw output directly to curlp".dimmed());
     println!();
-    println!("  {}  {}", "2. Pipe".green().bold(),
-        "pasa salida raw de curl a curlp".white());
-    println!("     {}", "curl -si https://api.example.com/data | curlp".dimmed());
+    println!("  {}  {}", "2. Pipe mode".yellow().bold(),
+        "curl -si <url> | curlp".white());
+    println!("     {}", "(-s silences progress, -i includes headers)".dimmed());
     println!();
-    println!("  {}", "MODO WEBSOCKET".white().bold());
+    println!("  {}", "WEBSOCKET MODE".white().bold());
     println!();
-    println!("  {}  {}", "Conexión directa".blue().bold(),
-        "curlp wss://echo.websocket.org".white());
-    println!("  {}  {}", "Comando wscat".blue().bold(),
-        "curlp 'wscat -c wss://echo.websocket.org'".white());
+    println!("  {}", "Direct connection  curlp wss://echo.websocket.org".white());
+    println!("  {}  {}", "wscat command".white(), "curlp 'wscat -c wss://echo.websocket.org'".white());
     println!();
-    println!("  {}", "EJEMPLOS HTTP".white().bold());
+    println!("  {}", "HTTP EXAMPLES".white().bold());
     println!();
-    println!("  {}", "# GET simple".dimmed());
+    println!("  {}", "# Simple GET".dimmed());
     println!("  {}", "curlp 'curl https://jsonplaceholder.typicode.com/todos/1'".dimmed());
     println!();
-    println!("  {}", "# POST con JSON".dimmed());
+    println!("  {}", "# POST with JSON".dimmed());
     println!("  {}", "curlp 'curl -X POST https://httpbin.org/post \\".dimmed());
     println!("  {}", "  -H \"Content-Type: application/json\" \\".dimmed());
-    println!("  {}", "  -d \\'{{\"usuario\":\"juan\",\"rol\":\"admin\"}}\\''".dimmed());
+    println!("  {}", "  -d \'{{\"user\":\"juan\",\"role\":\"admin\"}}\''".dimmed());
     println!();
-    println!("  {}", "# Con autenticación".dimmed());
-    println!("  {}", "curlp 'curl -u usuario:password https://api.example.com/private'".dimmed());
+    println!("  {}", "# With authentication".dimmed());
+    println!("  {}", "curlp 'curl -u user:password https://api.example.com/private'".dimmed());
     println!();
-    println!("  {}", "# Con headers personalizados".dimmed());
+    println!("  {}", "# Custom headers".dimmed());
     println!("  {}", "curlp 'curl -H \"Authorization: Bearer <token>\" https://api.example.com/me'".dimmed());
     println!();
     println!("  {}", "# Follow redirects".dimmed());
     println!("  {}", "curlp 'curl -L https://httpbin.org/redirect/1'".dimmed());
     println!();
-    println!("  {}", "CARACTERÍSTICAS HTTP".white().bold());
+    println!("  {}", "HTTP FEATURES".white().bold());
     println!();
-    println!("  {}  JSON con colores y sangría", "◆".cyan());
-    println!("  {}  XML formateado con indentación", "◆".cyan());
-    println!("  {}  Headers alineados y coloreados", "◆".cyan());
-    println!("  {}  Status con color (2xx verde · 3xx amarillo · 4xx/5xx rojo)", "◆".cyan());
-    println!("  {}  Tiempo de respuesta en ms", "◆".cyan());
-    println!("  {}  Soporte completo de flags curl (-k, -u, --proxy, etc.)", "◆".cyan());
+    println!("  {}  JSON with colors and indentation", "◆".cyan());
+    println!("  {}  XML formatted", "◆".cyan());
+    println!("  {}  Colored headers", "◆".cyan());
+    println!("  {}  Status colors (2xx green · 3xx yellow · 4xx/5xx red)", "◆".cyan());
+    println!("  {}  Response time", "◆".cyan());
+    println!("  {}  Automatic redirects (-L)", "◆".cyan());
+    println!("  {}  All curl flags (-k, -u, --proxy, etc.)", "◆".cyan());
     println!();
-    println!("  {}", "CARACTERÍSTICAS WEBSOCKET".white().bold());
+    println!("  {}", "WEBSOCKET FEATURES".white().bold());
     println!();
-    println!("  {}  JSON prettifier automático", "◆".blue());
-    println!("  {}  Prefijos coloreados: ← entrante, → saliente", "◆".blue());
-    println!("  {}  Modo interactivo con stdin/stdout", "◆".blue());
-    println!("  {}  Comando /quit para cerrar conexión", "◆".blue());
-    println!("  {}  Status de conexión al iniciar", "◆".blue());
+    println!("  {}  Automatic JSON prettifier", "◆".cyan());
+    println!("  {}  Colored prefixes: ← incoming, → outgoing", "◆".cyan());
+    println!("  {}  Interactive mode with stdin/stdout", "◆".cyan());
+    println!("  {}  /quit command to close connection", "◆".cyan());
+    println!("  {}  Connection status on startup", "◆".cyan());
     println!();
-    println!("  {}", "INSTALACIÓN".white().bold());
+    println!("  {}", "INSTALLATION".white().bold());
     println!();
-    println!("  {}  {}", "Script universal:".dimmed(), "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash".white());
+    println!("  {}  {}", "Universal script:".dimmed(), "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash".white());
     println!("  {}  {}", "Manual:".dimmed(), "https://github.com/tinconomad/curl-pretty/releases".white());
     println!();
 }
