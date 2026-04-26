@@ -34,6 +34,11 @@ fn main() {
             return;
         }
         "--doctor" | "--check" => { print_doctor(); return; }
+        flag if flag.starts_with("--") => {
+            eprintln!("{} {}: Unknown option '{}'", "❌", "Error".red().bold(), flag);
+            eprintln!("{} Use 'curlp --help' for available options", "➡️".dimmed());
+            std::process::exit(1);
+        }
         _ => {}
     }
 
