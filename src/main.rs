@@ -30,10 +30,20 @@ fn main() {
     match args[1].as_str() {
         "--help" | "-h" => { print_help(); return; }
         "--version" | "-V" => {
-            println!("{} {}", "curlp".cyan().bold(), env!("CARGO_PKG_VERSION").white());
+            let current = env!("CARGO_PKG_VERSION");
+            println!("{} {}", "curlp".cyan().bold(), current.white());
+            
+            // Check for updates silently
+            if let Ok(latest) = check_latest_version() {
+                if latest != current {
+                    println!("  {} New version available: {} → {}", "⚠️".yellow(), current, latest.green());
+                    println!("  {} Update with: {}", "→".dimmed(), "curlp --update".cyan());
+                }
+            }
             return;
         }
         "--doctor" | "--check" => { print_doctor(); return; }
+        "--update" => { update_curlp(); return; }
         flag if flag.starts_with("--") => {
             eprintln!("{} {}: Unknown option '{}'", "❌", "Error".red().bold(), flag);
             eprintln!("{} Use 'curlp --help' for available options", "➡️".dimmed());
@@ -64,6 +74,9 @@ fn main() {
         rt.block_on(ws_client::connect_ws(&url));
         return;
     }
+
+    // ── Check for updates (silent notification) ───────────────────────
+    check_for_update_notification();
 
     // ── Modo 2: curlp 'curl ...'  o  curlp curl ... ───────────────────
     execute_curl_and_display(&command_str);
@@ -347,6 +360,7 @@ fn print_help() {
     println!("  {}  {}", "-h, --help".yellow(), "Show this help".white());
     println!("  {}  {}", "-V, --version".yellow(), "Show version".white());
     println!("  {}  {}", "--doctor".yellow(), "Diagnose installation and PATH".white());
+    println!("  {}  {}", "--update".yellow(), "Update to latest version".white());
     println!();
     println!("  {}", "HTTP MODE".white().bold());
     println!();
@@ -596,4 +610,56 @@ fn extract_ws_url(command: &str) -> Option<String> {
     }
     
     None
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Version checking and update
+// ─────────────────────────────────────────────────────────────────────────────
+
+fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
+    let response = ureq::get("https://api.github.com/repos/tinconomad/curl-pretty/releases/latest")
+        .call()?;
+    
+    let text = response.into_string()?;
+    if let Some(tag_line) = text.lines().find(|line| line.contains("\"tag_name\"")) {
+        if let Some(tag) = tag_line.split(':').nth(1) {
+            let tag = tag.trim().trim_matches('"');
+            return Ok(tag.to_string());
+        }
+    }
+    
+    Err("Failed to parse version".into())
+}
+
+fn update_curlp() {
+    println!("{} Updating curlp...", "🔄".cyan());
+    
+    match std::process::Command::new("sh")
+        .arg("-c")
+        .arg("curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash")
+        .status()
+    {
+        Ok(status) if status.success() => {
+            println!("{} Update successful!", "✅".green());
+            println!("{} Please restart your terminal or run: {}", "→".dimmed(), "source ~/.bashrc".cyan());
+        }
+        Ok(_) => {
+            println!("{} Update failed. Please try manually:", "❌".red());
+            println!("  {}", "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash".cyan());
+        }
+        Err(e) => {
+            println!("{} Failed to run update: {}", "❌".red(), e);
+        }
+    }
+}
+
+fn check_for_update_notification() {
+    let current = env!("CARGO_PKG_VERSION");
+    if let Ok(latest) = check_latest_version() {
+        if latest != current {
+            eprintln!("{} New version available: {} → {} (run {} to update)", 
+                "⚠️".yellow(), current, latest.green(), "curlp --update".cyan());
+            eprintln!(); // Add spacing
+        }
+    }
 }

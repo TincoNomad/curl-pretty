@@ -12,6 +12,7 @@ tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 url = "2"
 openssl = { version = "0.10", features = ["vendored"] }
+ureq = "2.9"
 
 [profile.release]
 opt-level = 3
