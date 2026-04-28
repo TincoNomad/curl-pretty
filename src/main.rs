@@ -15,7 +15,9 @@ fn main() {
     // ── Modo 1: curl -si ... | curlp  ──────────────────────────────────
     if stdin_has_data {
         let mut input = String::new();
-        io::stdin().read_to_string(&mut input).expect("Error leyendo stdin");
+        io::stdin()
+            .read_to_string(&mut input)
+            .expect("Error leyendo stdin");
         println!();
         display_response(&input, 0);
         return;
@@ -28,24 +30,47 @@ fn main() {
     }
 
     match args[1].as_str() {
-        "--help" | "-h" => { print_help(); return; }
+        "--help" | "-h" => {
+            print_help();
+            return;
+        }
         "--version" | "-V" => {
             let current = env!("CARGO_PKG_VERSION");
             println!("{} {}", "curlp".cyan().bold(), current.white());
-            
+
             // Check for updates silently
             if let Ok(latest) = check_latest_version() {
                 if latest != current {
-                    println!("  {} New version available: {} → {}", "⚠️".yellow(), current, latest.green());
-                    println!("  {} Update with: {}", "→".dimmed(), "curlp --update".cyan());
+                    println!(
+                        "  {} New version available: {} → {}",
+                        "⚠️".yellow(),
+                        current,
+                        latest.green()
+                    );
+                    println!(
+                        "  {} Update with: {}",
+                        "→".dimmed(),
+                        "curlp --update".cyan()
+                    );
                 }
             }
             return;
         }
-        "--doctor" | "--check" => { print_doctor(); return; }
-        "--update" => { update_curlp(); return; }
+        "--doctor" | "--check" => {
+            print_doctor();
+            return;
+        }
+        "--update" => {
+            update_curlp();
+            return;
+        }
         flag if flag.starts_with("--") => {
-            eprintln!("{} {}: Unknown option '{}'", "❌", "Error".red().bold(), flag);
+            eprintln!(
+                "{} {}: Unknown option '{}'",
+                "❌",
+                "Error".red().bold(),
+                flag
+            );
             eprintln!("{} Use 'curlp --help' for available options", "➡️".dimmed());
             std::process::exit(1);
         }
@@ -60,7 +85,7 @@ fn main() {
     };
 
     let trimmed = command_str.trim();
-    
+
     // URL directa de WebSocket
     if trimmed.starts_with("ws://") || trimmed.starts_with("wss://") {
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -90,7 +115,10 @@ fn execute_curl_and_display(command_str: &str) {
     let parsed = CurlCommand::parse(command_str);
 
     println!();
-    let method_label = parsed.method.as_deref().unwrap_or(if parsed.data.is_some() { "POST" } else { "GET" });
+    let method_label = parsed
+        .method
+        .as_deref()
+        .unwrap_or(if parsed.data.is_some() { "POST" } else { "GET" });
     println!(
         "{} {} {}",
         method_label.cyan().bold(),
@@ -119,10 +147,14 @@ fn execute_curl_and_display(command_str: &str) {
             // Mostrar stderr filtrado (errores reales, no progreso)
             if !out.stderr.is_empty() {
                 let err = String::from_utf8_lossy(&out.stderr);
-                let real_errors: Vec<&str> = err.lines()
+                let real_errors: Vec<&str> = err
+                    .lines()
                     .filter(|l| {
                         let t = l.trim();
-                        !t.is_empty() && !t.contains("% Total") && !t.contains("Dload") && !t.starts_with(' ')
+                        !t.is_empty()
+                            && !t.contains("% Total")
+                            && !t.contains("Dload")
+                            && !t.starts_with(' ')
                     })
                     .collect();
                 if !real_errors.is_empty() {
@@ -148,7 +180,11 @@ fn execute_curl_and_display(command_str: &str) {
 fn display_response(raw: &str, elapsed_ms: u128) {
     // curl -i puede devolver múltiples bloques header (por redirects).
     // Dividimos en todos los bloques y tomamos el último par headers/body.
-    let separator = if raw.contains("\r\n\r\n") { "\r\n\r\n" } else { "\n\n" };
+    let separator = if raw.contains("\r\n\r\n") {
+        "\r\n\r\n"
+    } else {
+        "\n\n"
+    };
 
     // Puede haber múltiples bloques si hay redirects; quedarnos con el último
     let blocks: Vec<&str> = raw.split(separator).collect();
@@ -179,7 +215,8 @@ fn display_response(raw: &str, elapsed_ms: u128) {
     println!();
 
     // ── Headers ─────────────────────────────────────────────────────────
-    let real_headers: Vec<&str> = header_lines.iter()
+    let real_headers: Vec<&str> = header_lines
+        .iter()
         .skip(1)
         .filter(|l| !l.trim().is_empty())
         .copied()
@@ -187,7 +224,10 @@ fn display_response(raw: &str, elapsed_ms: u128) {
 
     if !real_headers.is_empty() {
         println!("{}", "  HEADERS".dimmed());
-        println!("{}", "  ──────────────────────────────────────────────────────".dimmed());
+        println!(
+            "{}",
+            "  ──────────────────────────────────────────────────────".dimmed()
+        );
         for line in &real_headers {
             if let Some(pos) = line.find(':') {
                 let key = line[..pos].trim();
@@ -204,7 +244,10 @@ fn display_response(raw: &str, elapsed_ms: u128) {
         println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
     } else {
         println!("{}", "  BODY".dimmed());
-        println!("{}", "  ──────────────────────────────────────────────────────".dimmed());
+        println!(
+            "{}",
+            "  ──────────────────────────────────────────────────────".dimmed()
+        );
         display_body(body_trimmed);
     }
 
@@ -212,20 +255,43 @@ fn display_response(raw: &str, elapsed_ms: u128) {
 }
 
 fn parse_status_code(line: &str) -> u16 {
-    line.split_whitespace().nth(1).and_then(|s| s.parse().ok()).unwrap_or(0)
+    line.split_whitespace()
+        .nth(1)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0)
 }
 
 fn display_status(line: &str, code: u16, elapsed_ms: u128) {
     let (icon, label) = match code {
-        200..=299 => ("✓".green().bold(), format!(" {} ", line).on_green().black().bold()),
-        300..=399 => ("↝".yellow().bold(), format!(" {} ", line).on_yellow().black().bold()),
-        400..=499 => ("✗".red().bold(),   format!(" {} ", line).on_red().white().bold()),
-        500..=599 => ("✗".bright_red().bold(), format!(" {} ", line).on_bright_red().white().bold()),
-        _         => ("?".white().bold(), format!(" {} ", line).on_white().black().bold()),
+        200..=299 => (
+            "✓".green().bold(),
+            format!(" {} ", line).on_green().black().bold(),
+        ),
+        300..=399 => (
+            "↝".yellow().bold(),
+            format!(" {} ", line).on_yellow().black().bold(),
+        ),
+        400..=499 => (
+            "✗".red().bold(),
+            format!(" {} ", line).on_red().white().bold(),
+        ),
+        500..=599 => (
+            "✗".bright_red().bold(),
+            format!(" {} ", line).on_bright_red().white().bold(),
+        ),
+        _ => (
+            "?".white().bold(),
+            format!(" {} ", line).on_white().black().bold(),
+        ),
     };
 
     if elapsed_ms > 0 {
-        println!("  {} {}  {}", icon, label, format!("{} ms", elapsed_ms).dimmed());
+        println!(
+            "  {} {}  {}",
+            icon,
+            label,
+            format!("{} ms", elapsed_ms).dimmed()
+        );
     } else {
         println!("  {} {}", icon, label);
     }
@@ -255,7 +321,7 @@ fn display_body(body: &str) {
 }
 
 fn print_json(value: &Value, depth: usize, is_last: bool) {
-    let pad   = "  ".repeat(depth);
+    let pad = "  ".repeat(depth);
     let pad_c = "  ".repeat(depth.saturating_sub(1));
     let comma = if is_last { "" } else { "," };
 
@@ -289,10 +355,10 @@ fn print_json(value: &Value, depth: usize, is_last: bool) {
             }
             print!("{}]{}", pad_c, comma.dimmed());
         }
-        Value::String(s)  => print!("{}{}", format!("\"{}\"", s).green(),  comma.dimmed()),
-        Value::Number(n)  => print!("{}{}", n.to_string().yellow(),         comma.dimmed()),
-        Value::Bool(b)    => print!("{}{}", b.to_string().magenta(),        comma.dimmed()),
-        Value::Null       => print!("{}{}", "null".red().dimmed(),          comma.dimmed()),
+        Value::String(s) => print!("{}{}", format!("\"{}\"", s).green(), comma.dimmed()),
+        Value::Number(n) => print!("{}{}", n.to_string().yellow(), comma.dimmed()),
+        Value::Bool(b) => print!("{}{}", b.to_string().magenta(), comma.dimmed()),
+        Value::Null => print!("{}{}", "null".red().dimmed(), comma.dimmed()),
     }
 
     // Always end with newline after top-level value
@@ -308,13 +374,17 @@ fn print_xml(xml: &str) {
             chars.next();
             let mut tag = String::new();
             for ch in chars.by_ref() {
-                if ch == '>' { break; }
+                if ch == '>' {
+                    break;
+                }
                 tag.push(ch);
             }
-            let closing  = tag.starts_with('/');
+            let closing = tag.starts_with('/');
             let self_cls = tag.ends_with('/');
-            let decl     = tag.starts_with('?') || tag.starts_with('!');
-            if closing { indent = indent.saturating_sub(1); }
+            let decl = tag.starts_with('?') || tag.starts_with('!');
+            if closing {
+                indent = indent.saturating_sub(1);
+            }
             let pad = "  ".repeat(indent);
             if decl {
                 println!("{}{}", pad, format!("<{}>", tag).dimmed());
@@ -323,7 +393,9 @@ fn print_xml(xml: &str) {
             } else {
                 println!("{}{}", pad, format!("<{}>", tag).cyan().bold());
             }
-            if !closing && !self_cls && !decl { indent += 1; }
+            if !closing && !self_cls && !decl {
+                indent += 1;
+            }
         } else {
             let mut text = String::new();
             while chars.peek().map(|&c| c != '<').unwrap_or(false) {
@@ -344,14 +416,21 @@ fn print_xml(xml: &str) {
 fn print_help() {
     let v = env!("CARGO_PKG_VERSION");
     println!();
-    println!("  {} {}  —  HTTP pretty-printer for your terminal",
-        "curlp".cyan().bold(), format!("v{}", v).dimmed());
+    println!(
+        "  {} {}  —  HTTP pretty-printer for your terminal",
+        "curlp".cyan().bold(),
+        format!("v{}", v).dimmed()
+    );
     println!("  {}", "─".repeat(54).dimmed());
     println!();
     println!("  {}", "USAGE MODES".white().bold());
     println!();
     println!("  {}  {}", "curlp".cyan(), "[OPCIONES]".white());
-    println!("  {}  {}", "curlp".cyan(), "'curl [opciones] <url>'".white());
+    println!(
+        "  {}  {}",
+        "curlp".cyan(),
+        "'curl [opciones] <url>'".white()
+    );
     println!("  {}  {}", "curlp".cyan(), "<websocket-url>".white());
     println!("  {}  {}", "curl".cyan(), "-si <url> | curlp".white());
     println!();
@@ -359,49 +438,97 @@ fn print_help() {
     println!();
     println!("  {}  {}", "-h, --help".yellow(), "Show this help".white());
     println!("  {}  {}", "-V, --version".yellow(), "Show version".white());
-    println!("  {}  {}", "--doctor".yellow(), "Diagnose installation and PATH".white());
-    println!("  {}  {}", "--update".yellow(), "Update to latest version".white());
+    println!(
+        "  {}  {}",
+        "--doctor".yellow(),
+        "Diagnose installation and PATH".white()
+    );
+    println!(
+        "  {}  {}",
+        "--update".yellow(),
+        "Update to latest version".white()
+    );
     println!();
     println!("  {}", "HTTP MODE".white().bold());
     println!();
-    println!("  {}  {}", "1. Argument mode".yellow().bold(),
-        "curlp executes curl and prettifies the response".white());
+    println!(
+        "  {}  {}",
+        "1. Argument mode".yellow().bold(),
+        "curlp executes curl and prettifies the response".white()
+    );
     println!("     {}", "pass curl raw output directly to curlp".dimmed());
     println!();
-    println!("  {}  {}", "2. Pipe mode".yellow().bold(),
-        "curl -si <url> | curlp".white());
-    println!("     {}", "(-s silences progress, -i includes headers)".dimmed());
+    println!(
+        "  {}  {}",
+        "2. Pipe mode".yellow().bold(),
+        "curl -si <url> | curlp".white()
+    );
+    println!(
+        "     {}",
+        "(-s silences progress, -i includes headers)".dimmed()
+    );
     println!();
     println!("  {}", "WEBSOCKET MODE".white().bold());
     println!();
-    println!("  {}", "Direct connection  curlp wss://echo.websocket.org".white());
-    println!("  {}  {}", "wscat command".white(), "curlp 'wscat -c wss://echo.websocket.org'".white());
+    println!(
+        "  {}",
+        "Direct connection  curlp wss://echo.websocket.org".white()
+    );
+    println!(
+        "  {}  {}",
+        "wscat command".white(),
+        "curlp 'wscat -c wss://echo.websocket.org'".white()
+    );
     println!();
     println!("  {}", "HTTP EXAMPLES".white().bold());
     println!();
     println!("  {}", "# Simple GET".dimmed());
-    println!("  {}", "curlp 'curl https://jsonplaceholder.typicode.com/todos/1'".dimmed());
+    println!(
+        "  {}",
+        "curlp 'curl https://jsonplaceholder.typicode.com/todos/1'".dimmed()
+    );
     println!();
     println!("  {}", "# POST with JSON".dimmed());
-    println!("  {}", "curlp 'curl -X POST https://httpbin.org/post \\".dimmed());
-    println!("  {}", "  -H \"Content-Type: application/json\" \\".dimmed());
-    println!("  {}", "  -d \'{{\"user\":\"juan\",\"role\":\"admin\"}}\''".dimmed());
+    println!(
+        "  {}",
+        "curlp 'curl -X POST https://httpbin.org/post \\".dimmed()
+    );
+    println!(
+        "  {}",
+        "  -H \"Content-Type: application/json\" \\".dimmed()
+    );
+    println!(
+        "  {}",
+        "  -d \'{{\"user\":\"juan\",\"role\":\"admin\"}}\''".dimmed()
+    );
     println!();
     println!("  {}", "# With authentication".dimmed());
-    println!("  {}", "curlp 'curl -u user:password https://api.example.com/private'".dimmed());
+    println!(
+        "  {}",
+        "curlp 'curl -u user:password https://api.example.com/private'".dimmed()
+    );
     println!();
     println!("  {}", "# Custom headers".dimmed());
-    println!("  {}", "curlp 'curl -H \"Authorization: Bearer <token>\" https://api.example.com/me'".dimmed());
+    println!(
+        "  {}",
+        "curlp 'curl -H \"Authorization: Bearer <token>\" https://api.example.com/me'".dimmed()
+    );
     println!();
     println!("  {}", "# Follow redirects".dimmed());
-    println!("  {}", "curlp 'curl -L https://httpbin.org/redirect/1'".dimmed());
+    println!(
+        "  {}",
+        "curlp 'curl -L https://httpbin.org/redirect/1'".dimmed()
+    );
     println!();
     println!("  {}", "HTTP FEATURES".white().bold());
     println!();
     println!("  {}  JSON with colors and indentation", "◆".cyan());
     println!("  {}  XML formatted", "◆".cyan());
     println!("  {}  Colored headers", "◆".cyan());
-    println!("  {}  Status colors (2xx green · 3xx yellow · 4xx/5xx red)", "◆".cyan());
+    println!(
+        "  {}  Status colors (2xx green · 3xx yellow · 4xx/5xx red)",
+        "◆".cyan()
+    );
     println!("  {}  Response time", "◆".cyan());
     println!("  {}  Automatic redirects (-L)", "◆".cyan());
     println!("  {}  All curl flags (-k, -u, --proxy, etc.)", "◆".cyan());
@@ -416,19 +543,28 @@ fn print_help() {
     println!();
     println!("  {}", "INSTALLATION".white().bold());
     println!();
-    println!("  {}  {}", "Universal script:".dimmed(), "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash".white());
-    println!("  {}  {}", "Manual:".dimmed(), "https://github.com/tinconomad/curl-pretty/releases".white());
+    println!(
+        "  {}  {}",
+        "Universal script:".dimmed(),
+        "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash"
+            .white()
+    );
+    println!(
+        "  {}  {}",
+        "Manual:".dimmed(),
+        "https://github.com/tinconomad/curl-pretty/releases".white()
+    );
     println!();
 }
 
 fn print_doctor() {
     use std::env;
-    
+
     println!();
     println!("  {}  —  Diagnóstico de instalación", "curlp".cyan().bold());
     println!("  {}", "─".repeat(54).dimmed());
     println!();
-    
+
     // Verificar ubicación del binario
     let current_exe = env::current_exe().ok();
     let install_paths = vec![
@@ -436,90 +572,147 @@ fn print_doctor() {
         "/usr/local/bin/curlp".to_string(),
         "/usr/bin/curlp".to_string(),
     ];
-    
+
     println!("  {}", "UBICACIÓN DEL BINARIO".white().bold());
     println!();
-    
+
     if let Some(exe_path) = current_exe {
-        println!("  {}  {}", "✅".green(), format!("Ejecutando desde: {}", exe_path.display()).white());
+        println!(
+            "  {}  {}",
+            "✅".green(),
+            format!("Ejecutando desde: {}", exe_path.display()).white()
+        );
     }
-    
+
     let mut found_in_path = false;
     for path in &install_paths {
         if std::path::Path::new(path).exists() {
-            println!("  {}  {}", "✅".green(), format!("Encontrado en: {}", path).white());
+            println!(
+                "  {}  {}",
+                "✅".green(),
+                format!("Encontrado en: {}", path).white()
+            );
             found_in_path = true;
         }
     }
-    
+
     if !found_in_path {
-        println!("  {}  {}", "❌".red(), "No encontrado en ubicaciones estándar".white());
+        println!(
+            "  {}  {}",
+            "❌".red(),
+            "No encontrado en ubicaciones estándar".white()
+        );
     }
     println!();
-    
+
     // Verificar PATH
     println!("  {}", "CONFIGURACIÓN DE PATH".white().bold());
     println!();
-    
+
     let path = env::var("PATH").unwrap_or_default();
     let home = env::var("HOME").unwrap_or_default();
     let local_bin = format!("{}/.local/bin", home);
-    
+
     if path.contains(&local_bin) {
-        println!("  {}  {}", "✅".green(), format!("{} está en PATH", local_bin).white());
+        println!(
+            "  {}  {}",
+            "✅".green(),
+            format!("{} está en PATH", local_bin).white()
+        );
     } else {
-        println!("  {}  {}", "⚠️".yellow(), format!("{} NO está en PATH", local_bin).white());
+        println!(
+            "  {}  {}",
+            "⚠️".yellow(),
+            format!("{} NO está en PATH", local_bin).white()
+        );
         println!();
         println!("  {}", "SOLUCIÓN:".yellow().bold());
         println!("  {}", "Agrega esto a tu ~/.bashrc o ~/.zshrc:".white());
-        println!("  {}", format!("export PATH=\"$HOME/.local/bin:$PATH\"").cyan());
+        println!(
+            "  {}",
+            format!("export PATH=\"$HOME/.local/bin:$PATH\"").cyan()
+        );
         println!();
         println!("  {}", "Luego recarga la configuración:".white());
         println!("  {}", "source ~/.zshrc  # o source ~/.bashrc".cyan());
     }
     println!();
-    
+
     // Verificar curl
     println!("  {}", "DEPENDENCIAS".white().bold());
     println!();
-    
+
     match Command::new("curl").arg("--version").output() {
         Ok(output) if output.status.success() => {
             let version = String::from_utf8_lossy(&output.stdout);
             let first_line = version.lines().next().unwrap_or("curl found");
-            println!("  {}  {}", "✅".green(), format!("curl: {}", first_line).white());
+            println!(
+                "  {}  {}",
+                "✅".green(),
+                format!("curl: {}", first_line).white()
+            );
         }
-        _ => println!("  {}  {}", "❌".red(), "curl: No encontrado (requerido para HTTP mode)".white()),
+        _ => println!(
+            "  {}  {}",
+            "❌".red(),
+            "curl: No encontrado (requerido para HTTP mode)".white()
+        ),
     }
     println!();
-    
+
     // Test de conectividad
     println!("  {}", "PRUEBA DE CONECTIVIDAD".white().bold());
     println!();
-    
-    match Command::new("curl").args(&["-s", "-o", "/dev/null", "-w", "%{http_code}", "https://httpbin.org/get"]).output() {
+
+    match Command::new("curl")
+        .args(&[
+            "-s",
+            "-o",
+            "/dev/null",
+            "-w",
+            "%{http_code}",
+            "https://httpbin.org/get",
+        ])
+        .output()
+    {
         Ok(output) if output.status.success() => {
             let code = String::from_utf8_lossy(&output.stdout);
             if code.trim() == "200" {
                 println!("  {}  {}", "✅".green(), "Conexión a internet: OK".white());
             } else {
-                println!("  {}  {}", "⚠️".yellow(), format!("HTTP status: {}", code.trim()).white());
+                println!(
+                    "  {}  {}",
+                    "⚠️".yellow(),
+                    format!("HTTP status: {}", code.trim()).white()
+                );
             }
         }
-        _ => println!("  {}  {}", "❌".red(), "No se pudo conectar a internet".white()),
+        _ => println!(
+            "  {}  {}",
+            "❌".red(),
+            "No se pudo conectar a internet".white()
+        ),
     }
     println!();
-    
+
     // Resumen
     println!("  {}", "RESUMEN".white().bold());
     println!();
     if found_in_path && path.contains(&local_bin) {
-        println!("  {}  {}", "✅".green(), "Todo está correctamente configurado!".white());
+        println!(
+            "  {}  {}",
+            "✅".green(),
+            "Todo está correctamente configurado!".white()
+        );
         println!();
         println!("  {}", "Prueba con:".dimmed());
         println!("  {}", "curlp 'curl https://httpbin.org/get'".cyan());
     } else {
-        println!("  {}  {}", "⚠️".yellow(), "Se encontraron problemas. Revisa las soluciones arriba.".white());
+        println!(
+            "  {}  {}",
+            "⚠️".yellow(),
+            "Se encontraron problemas. Revisa las soluciones arriba.".white()
+        );
     }
     println!();
 }
@@ -540,7 +733,7 @@ mod tests {
     #[test]
     fn test_display_response_json() {
         let json_response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"id\": 1, \"name\": \"test\"}";
-        
+
         // This should not panic and should handle JSON properly
         display_response(json_response, 123);
     }
@@ -548,7 +741,7 @@ mod tests {
     #[test]
     fn test_display_response_xml() {
         let xml_response = "HTTP/1.1 200 OK\r\nContent-Type: application/xml\r\n\r\n<?xml version=\"1.0\"?><root><item>test</item></root>";
-        
+
         // This should not panic and should handle XML properly
         display_response(xml_response, 456);
     }
@@ -556,7 +749,7 @@ mod tests {
     #[test]
     fn test_display_response_plain_text() {
         let text_response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello, World!";
-        
+
         // This should not panic and should handle plain text properly
         display_response(text_response, 789);
     }
@@ -564,7 +757,7 @@ mod tests {
     #[test]
     fn test_display_response_no_headers() {
         let body_only = "{\"message\": \"no headers\"}";
-        
+
         // This should handle body-only responses
         display_response(body_only, 0);
     }
@@ -572,7 +765,7 @@ mod tests {
     #[test]
     fn test_display_response_empty_body() {
         let empty_response = "HTTP/1.1 204 No Content\r\n\r\n";
-        
+
         // This should handle empty body responses
         display_response(empty_response, 100);
     }
@@ -580,7 +773,7 @@ mod tests {
     #[test]
     fn test_display_response_with_redirects() {
         let redirect_response = "HTTP/1.1 301 Moved Permanently\r\nLocation: /new-url\r\n\r\nHTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"success\": true}";
-        
+
         // This should handle responses with redirects
         display_response(redirect_response, 250);
     }
@@ -589,7 +782,7 @@ mod tests {
 // Extrae URL WebSocket de comandos tipo wscat
 fn extract_ws_url(command: &str) -> Option<String> {
     let tokens: Vec<&str> = command.split_whitespace().collect();
-    
+
     for (i, token) in tokens.iter().enumerate() {
         match *token {
             "-c" | "--connect" => {
@@ -608,7 +801,7 @@ fn extract_ws_url(command: &str) -> Option<String> {
             }
         }
     }
-    
+
     None
 }
 
@@ -617,9 +810,9 @@ fn extract_ws_url(command: &str) -> Option<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
-    let response = ureq::get("https://api.github.com/repos/tinconomad/curl-pretty/releases/latest")
-        .call()?;
-    
+    let response =
+        ureq::get("https://api.github.com/repos/tinconomad/curl-pretty/releases/latest").call()?;
+
     let text = response.into_string()?;
     if let Some(tag_line) = text.lines().find(|line| line.contains("\"tag_name\"")) {
         if let Some(tag) = tag_line.split(':').nth(1) {
@@ -627,13 +820,13 @@ fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
             return Ok(tag.to_string());
         }
     }
-    
+
     Err("Failed to parse version".into())
 }
 
 fn update_curlp() {
     println!("{} Updating curlp...", "🔄".cyan());
-    
+
     match std::process::Command::new("sh")
         .arg("-c")
         .arg("curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash")
@@ -657,8 +850,13 @@ fn check_for_update_notification() {
     let current = env!("CARGO_PKG_VERSION");
     if let Ok(latest) = check_latest_version() {
         if latest != current {
-            eprintln!("{} New version available: {} → {} (run {} to update)", 
-                "⚠️".yellow(), current, latest.green(), "curlp --update".cyan());
+            eprintln!(
+                "{} New version available: {} → {} (run {} to update)",
+                "⚠️".yellow(),
+                current,
+                latest.green(),
+                "curlp --update".cyan()
+            );
             eprintln!(); // Add spacing
         }
     }

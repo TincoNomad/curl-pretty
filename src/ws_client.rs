@@ -25,10 +25,17 @@ pub async fn connect_ws(url_str: &str) {
         }
     };
 
-    println!("{} {} ({})", "✓".green().bold(), "Conectado!".green(), 
-             format!("HTTP {}", response.status()).dimmed());
+    println!(
+        "{} {} ({})",
+        "✓".green().bold(),
+        "Conectado!".green(),
+        format!("HTTP {}", response.status()).dimmed()
+    );
     println!("{}", "─".repeat(64).dimmed());
-    println!("{}", "Escribe mensajes y presiona Enter. /quit para salir.".dimmed());
+    println!(
+        "{}",
+        "Escribe mensajes y presiona Enter. /quit para salir.".dimmed()
+    );
     println!();
 
     let (mut write, mut read) = ws_stream.split();
@@ -79,23 +86,23 @@ pub async fn connect_ws(url_str: &str) {
     let stdin_task = tokio::spawn(async move {
         let mut stdin_reader = BufReader::new(tokio::io::stdin());
         let mut line = String::new();
-        
+
         loop {
             print!("> ");
             io::stdout().flush().unwrap();
-            
+
             line.clear();
             match stdin_reader.read_line(&mut line).await {
                 Ok(0) => break, // EOF
                 Ok(_) => {
                     let trimmed = line.trim();
-                    
+
                     if trimmed == "/quit" {
                         println!("{} Cerrando conexión...", "←".yellow().bold());
                         let _ = tx.send("/quit".to_string()).await;
                         break;
                     }
-                    
+
                     if !trimmed.is_empty() {
                         if let Err(e) = tx.send(trimmed.to_string()).await {
                             eprintln!("{} Error enviando mensaje: {}", "✗".red().bold(), e);
@@ -119,7 +126,7 @@ pub async fn connect_ws(url_str: &str) {
                 let _ = write.send(Message::Close(None)).await;
                 break;
             }
-            
+
             if let Err(e) = write.send(Message::Text(msg)).await {
                 eprintln!("{} Error enviando a WebSocket: {}", "✗".red().bold(), e);
                 break;

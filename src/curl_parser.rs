@@ -28,7 +28,9 @@ impl CurlCommand {
             match token.as_str() {
                 // Método
                 "-X" | "--request" => {
-                    if let Some(m) = iter.next() { method = Some(m.clone()); }
+                    if let Some(m) = iter.next() {
+                        method = Some(m.clone());
+                    }
                 }
                 // Headers
                 "-H" | "--header" => {
@@ -43,28 +45,31 @@ impl CurlCommand {
                 }
                 // Body
                 "-d" | "--data" | "--data-raw" | "--data-binary" | "--data-ascii" => {
-                    if let Some(d) = iter.next() { data = Some(d.clone()); }
+                    if let Some(d) = iter.next() {
+                        data = Some(d.clone());
+                    }
                 }
                 // Flags que ya añadimos nosotros — ignorar los del usuario
                 "-i" | "--include" | "-s" | "--silent" | "-v" | "--verbose" => {}
                 // Flags con valor que pasamos tal cual
-                "-o" | "--output" | "-u" | "--user" | "--connect-timeout" |
-                "--max-time" | "-m" | "--proxy" | "-x" | "--cacert" |
-                "--cert" | "--key" | "--resolve" | "--dns-servers" |
-                "-A" | "--user-agent" | "--referer" | "-e" => {
+                "-o" | "--output" | "-u" | "--user" | "--connect-timeout" | "--max-time" | "-m"
+                | "--proxy" | "-x" | "--cacert" | "--cert" | "--key" | "--resolve"
+                | "--dns-servers" | "-A" | "--user-agent" | "--referer" | "-e" => {
                     if let Some(val) = iter.next() {
                         extra_args.push(token.clone());
                         extra_args.push(val.clone());
                     }
                 }
                 // Flags booleanos que pasamos
-                "-k" | "--insecure" | "-L" | "--location" | "-g" |
-                "--compressed" | "--http1.0" | "--http1.1" | "--http2" |
-                "--http3" | "-I" | "--head" | "--no-keepalive" => {
+                "-k" | "--insecure" | "-L" | "--location" | "-g" | "--compressed" | "--http1.0"
+                | "--http1.1" | "--http2" | "--http3" | "-I" | "--head" | "--no-keepalive" => {
                     extra_args.push(token.clone());
                 }
                 t => {
-                    if t.starts_with("http://") || t.starts_with("https://") || t.starts_with("ftp://") {
+                    if t.starts_with("http://")
+                        || t.starts_with("https://")
+                        || t.starts_with("ftp://")
+                    {
                         url = t.to_string();
                     } else if !t.starts_with('-') && url.is_empty() {
                         // Token sin guion y no hay URL aún → asumir que es la URL
@@ -77,7 +82,13 @@ impl CurlCommand {
             }
         }
 
-        CurlCommand { url, method, headers, data, extra_args }
+        CurlCommand {
+            url,
+            method,
+            headers,
+            data,
+            extra_args,
+        }
     }
 
     /// Construye el vector de argumentos para pasar a `curl`,
@@ -103,7 +114,9 @@ impl CurlCommand {
             args.push(d.clone());
 
             // Auto-inyectar Content-Type si el body parece JSON y no está definido
-            let has_ct = self.headers.iter()
+            let has_ct = self
+                .headers
+                .iter()
                 .any(|(k, _)| k.to_lowercase() == "content-type");
             if !has_ct && d.trim_start().starts_with('{') {
                 args.push("-H".to_string());
@@ -130,10 +143,16 @@ fn tokenize(input: &str) -> Vec<String> {
 
     while let Some(c) = chars.next() {
         match c {
-            '\'' if !in_double => { in_single = !in_single; }
-            '"'  if !in_single => { in_double = !in_double; }
-            '\\' if in_double  => {
-                if let Some(next) = chars.next() { current.push(next); }
+            '\'' if !in_double => {
+                in_single = !in_single;
+            }
+            '"' if !in_single => {
+                in_double = !in_double;
+            }
+            '\\' if in_double => {
+                if let Some(next) = chars.next() {
+                    current.push(next);
+                }
             }
             ' ' | '\t' | '\n' if !in_single && !in_double => {
                 if !current.is_empty() {
@@ -143,7 +162,9 @@ fn tokenize(input: &str) -> Vec<String> {
             _ => current.push(c),
         }
     }
-    if !current.is_empty() { tokens.push(current); }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
     tokens
 }
 
@@ -162,21 +183,47 @@ mod tests {
     fn test_tokenize_with_quotes() {
         let input = "curl -H \"Content-Type: application/json\" https://example.com";
         let tokens = tokenize(input);
-        assert_eq!(tokens, vec!["curl", "-H", "Content-Type: application/json", "https://example.com"]);
+        assert_eq!(
+            tokens,
+            vec![
+                "curl",
+                "-H",
+                "Content-Type: application/json",
+                "https://example.com"
+            ]
+        );
     }
 
     #[test]
     fn test_tokenize_single_quotes() {
         let input = "curl -H 'Authorization: Bearer token' https://example.com";
         let tokens = tokenize(input);
-        assert_eq!(tokens, vec!["curl", "-H", "Authorization: Bearer token", "https://example.com"]);
+        assert_eq!(
+            tokens,
+            vec![
+                "curl",
+                "-H",
+                "Authorization: Bearer token",
+                "https://example.com"
+            ]
+        );
     }
 
     #[test]
     fn test_tokenize_mixed_quotes() {
         let input = "curl -d '{\"name\":\"test\"}' -H \"X-Custom: value\" https://example.com";
         let tokens = tokenize(input);
-        assert_eq!(tokens, vec!["curl", "-d", "{\"name\":\"test\"}", "-H", "X-Custom: value", "https://example.com"]);
+        assert_eq!(
+            tokens,
+            vec![
+                "curl",
+                "-d",
+                "{\"name\":\"test\"}",
+                "-H",
+                "X-Custom: value",
+                "https://example.com"
+            ]
+        );
     }
 
     #[test]
@@ -202,8 +249,14 @@ mod tests {
         let cmd = CurlCommand::parse("curl -H \"Content-Type: application/json\" -H \"Authorization: Bearer token\" https://api.example.com/users");
         assert_eq!(cmd.url, "https://api.example.com/users");
         assert_eq!(cmd.headers.len(), 2);
-        assert_eq!(cmd.headers[0], ("Content-Type".to_string(), "application/json".to_string()));
-        assert_eq!(cmd.headers[1], ("Authorization".to_string(), "Bearer token".to_string()));
+        assert_eq!(
+            cmd.headers[0],
+            ("Content-Type".to_string(), "application/json".to_string())
+        );
+        assert_eq!(
+            cmd.headers[1],
+            ("Authorization".to_string(), "Bearer token".to_string())
+        );
     }
 
     #[test]
@@ -225,9 +278,11 @@ mod tests {
 
     #[test]
     fn test_to_args_with_headers() {
-        let cmd = CurlCommand::parse("curl -X POST -H \"Content-Type: application/json\" https://api.example.com/users");
+        let cmd = CurlCommand::parse(
+            "curl -X POST -H \"Content-Type: application/json\" https://api.example.com/users",
+        );
         let args = cmd.to_args_with_headers();
-        
+
         // Should include -i and -s automatically
         assert!(args.contains(&"-i".to_string()));
         assert!(args.contains(&"-s".to_string()));
@@ -242,7 +297,7 @@ mod tests {
     fn test_auto_content_type_injection() {
         let cmd = CurlCommand::parse("curl -d '{\"name\":\"test\"}' https://api.example.com/users");
         let args = cmd.to_args_with_headers();
-        
+
         // Should auto-inject Content-Type for JSON data
         assert!(args.contains(&"Content-Type: application/json".to_string()));
     }
@@ -251,9 +306,12 @@ mod tests {
     fn test_no_auto_content_type_when_exists() {
         let cmd = CurlCommand::parse("curl -H \"Content-Type: text/plain\" -d '{\"name\":\"test\"}' https://api.example.com/users");
         let args = cmd.to_args_with_headers();
-        
+
         // Should not duplicate Content-Type
-        let content_type_count = args.iter().filter(|arg| arg.contains("Content-Type")).count();
+        let content_type_count = args
+            .iter()
+            .filter(|arg| arg.contains("Content-Type"))
+            .count();
         assert_eq!(content_type_count, 1);
     }
 }
