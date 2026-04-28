@@ -67,7 +67,7 @@ fn main() {
         flag if flag.starts_with("--") => {
             eprintln!(
                 "{} {}: Unknown option '{}'",
-                "❌",
+                "❌".red().bold(),
                 "Error".red().bold(),
                 flag
             );
@@ -328,7 +328,7 @@ fn print_json(value: &Value, depth: usize, is_last: bool) {
     match value {
         Value::Object(map) => {
             if map.is_empty() {
-                print!("{}{}{}", "{}".dimmed(), comma.dimmed(), "");
+                print!("{}{}", "{}".dimmed(), comma.dimmed());
                 return;
             }
             println!("{}", "{".dimmed());
@@ -630,7 +630,7 @@ fn print_doctor() {
         println!("  {}", "Agrega esto a tu ~/.bashrc o ~/.zshrc:".white());
         println!(
             "  {}",
-            format!("export PATH=\"$HOME/.local/bin:$PATH\"").cyan()
+            "export PATH=\"$HOME/.local/bin:$PATH\"".to_string().cyan()
         );
         println!();
         println!("  {}", "Luego recarga la configuración:".white());
@@ -665,7 +665,7 @@ fn print_doctor() {
     println!();
 
     match Command::new("curl")
-        .args(&[
+        .args([
             "-s",
             "-o",
             "/dev/null",

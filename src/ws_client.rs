@@ -161,7 +161,7 @@ fn print_json_pretty(value: &Value, depth: usize) {
     match value {
         Value::Object(map) => {
             if map.is_empty() {
-                println!("{}{}", "{}".dimmed(), "");
+                println!("{}", "{}".dimmed());
                 return;
             }
             println!("{}", "{".dimmed());
@@ -174,7 +174,7 @@ fn print_json_pretty(value: &Value, depth: usize) {
         }
         Value::Array(arr) => {
             if arr.is_empty() {
-                println!("{}{}", "[]".dimmed(), "");
+                println!("{}", "[]".dimmed());
                 return;
             }
             println!("{}", "[".dimmed());
@@ -184,10 +184,10 @@ fn print_json_pretty(value: &Value, depth: usize) {
             }
             print!("{}]", pad_c);
         }
-        Value::String(s) => println!("{}{}", format!("\"{}\"", s).green(), ""),
-        Value::Number(n) => println!("{}{}", n.to_string().yellow(), ""),
-        Value::Bool(b) => println!("{}{}", b.to_string().magenta(), ""),
-        Value::Null => println!("{}{}", "null".red().dimmed(), ""),
+        Value::String(s) => println!("{}", format!("\"{}\"", s).green()),
+        Value::Number(n) => println!("{}", n.to_string().yellow()),
+        Value::Bool(b) => println!("{}", b.to_string().magenta()),
+        Value::Null => println!("{}", "null".red().dimmed()),
     }
 
     // Always end with newline
