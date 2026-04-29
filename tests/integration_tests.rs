@@ -25,6 +25,7 @@ fn test_integration_with_real_json_response() {
     // Test curlp with the input
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
@@ -46,6 +47,7 @@ fn test_integration_with_xml_response() {
 
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
@@ -67,6 +69,7 @@ fn test_integration_with_plain_text_response() {
 
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
@@ -86,6 +89,7 @@ fn test_integration_error_response() {
 
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
@@ -106,6 +110,7 @@ fn test_integration_empty_response() {
 
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
@@ -125,6 +130,7 @@ fn test_integration_redirect_response() {
 
     let output = Command::new("cargo")
         .args(&["run", "--bin", "curlp", "--"])
+        .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
         .expect("Failed to run curlp");
