@@ -2,9 +2,9 @@
 
 ## Build & Run
 
-- `cargo build --release` - builds binary to `target/release/curlp`
-- `cargo run --bin curlp -- [args]` - run with curl arguments (recommended)
-- `curl -si <url> | cargo run --bin curlp --` - pipe mode
+- `cargo build --release` - builds binary to `target/release/pcurl`
+- `cargo run --bin pcurl -- [args]` - run with curl arguments (recommended)
+- `curl -si <url> | cargo run --bin pcurl --` - pipe mode
 
 ## CLI Options
 
@@ -16,7 +16,7 @@
 ## Testing
 
 - `cargo test` - runs integration tests
-- Tests are in `tests/integration_tests.rs` and spawn actual binary via `cargo run --bin curlp --`
+- Tests are in `tests/integration_tests.rs` and spawn actual binary via `cargo run --bin pcurl --`
 
 ## Release
 
@@ -26,12 +26,16 @@
 
 ## WebSocket Support
 
-- Built-in: `curlp wss://<url>` or `curlp ws://<url>`
-- Also: `curlp wscat -c wss://<url>`
+- Built-in: `pcurl wss://<url>` or `pcurl ws://<url>`
+- Also: `pcurl wscat -c wss://<url>`
 
 ## Project Structure
 
-- `src/main.rs` - HTTP response parsing, display logic, WebSocket detection, version checking, self-update, doctor diagnostic
+- `src/main.rs` - Entry point, CLI dispatch, curl execution
+- `src/display.rs` - HTTP response parsing and display (status, headers, body, JSON, XML)
+- `src/help.rs` - Help text and doctor diagnostic
+- `src/version.rs` - Version checking and self-update
+- `src/ws.rs` - WebSocket URL extraction
 - `src/ws_client.rs` - WebSocket client implementation
 - `src/curl_parser.rs` - curl command tokenization and reconstruction
 - `tests/integration_tests.rs` - End-to-end tests
@@ -51,19 +55,19 @@
 
 ## Development Guidelines
 
-- **New HTTP features**: Add to `src/main.rs` in display functions
+- **New HTTP features**: Add to `src/display.rs` in display functions
 - **New WebSocket features**: Add to `src/ws_client.rs`
 - **Curl parsing issues**: Fix in `src/curl_parser.rs`
 - **New CLI flags**: Add match arm in `main()`, update `print_help()`, add function
 - **Always test**: Add integration tests for new features
-- **Update help**: Modify `print_help()` in `src/main.rs`
-- **Version checking**: Uses `ureq` to query GitHub Releases API (`check_latest_version()`)
-- **Silent update notification**: `check_for_update_notification()` runs on every HTTP request
+- **Update help**: Modify `print_help()` in `src/help.rs`
+- **Version checking**: Uses `ureq` to query GitHub Releases API (`check_latest_version()` in `src/version.rs`)
+- **Silent update notification**: `check_for_update_notification()` in `src/version.rs` runs on every HTTP request
 
 ## Common Tasks
 
 ### Add new output format
-1. Add detection in `display_body()` function
+1. Add detection in `display_body()` function in `src/display.rs`
 2. Create formatting function (e.g., `print_yaml()`)
 3. Add integration test in `tests/integration_tests.rs`
 
@@ -74,8 +78,8 @@
 
 ### Add new CLI flag
 1. Add match arm in `main()` function
-2. Create handler function (e.g., `print_doctor()`)
-3. Update `print_help()` with new option
+2. Create handler function (e.g., `print_doctor()` in `src/help.rs`)
+3. Update `print_help()` in `src/help.rs` with new option
 4. Add integration test if applicable
 
 ### Update version

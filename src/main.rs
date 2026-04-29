@@ -13,14 +13,14 @@ mod ws_client;
 use curl_parser::CurlCommand;
 use display::display_response;
 use help::{print_doctor, print_help};
-use version::{check_for_update_notification, check_latest_version, update_curlp};
+use version::{check_for_update_notification, check_latest_version, update_pcurl};
 use ws::extract_ws_url;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let stdin_has_data = !atty::is(atty::Stream::Stdin);
 
-    // ── Modo 1: curl -si ... | curlp  ──────────────────────────────────
+    // ── Modo 1: curl -si ... | pcurl  ──────────────────────────────────
     if stdin_has_data {
         let mut input = String::new();
         io::stdin()
@@ -44,7 +44,7 @@ fn main() {
         }
         "--version" | "-V" => {
             let current = env!("CARGO_PKG_VERSION");
-            println!("{} {}", "curlp".cyan().bold(), current.white());
+            println!("{} {}", "pcurl".cyan().bold(), current.white());
 
             // Check for updates silently
             if let Ok(latest) = check_latest_version() {
@@ -58,7 +58,7 @@ fn main() {
                     println!(
                         "  {} Update with: {}",
                         "→".dimmed(),
-                        "curlp --update".cyan()
+                        "pcurl --update".cyan()
                     );
                 }
             }
@@ -69,7 +69,7 @@ fn main() {
             return;
         }
         "--update" => {
-            update_curlp();
+            update_pcurl();
             return;
         }
         flag if flag.starts_with("--") => {
@@ -79,7 +79,7 @@ fn main() {
                 "Error".red().bold(),
                 flag
             );
-            eprintln!("{} Use 'curlp --help' for available options", "➡️".dimmed());
+            eprintln!("{} Use 'pcurl --help' for available options", "➡️".dimmed());
             std::process::exit(1);
         }
         _ => {}
@@ -111,7 +111,7 @@ fn main() {
     // ── Check for updates (silent notification) ───────────────────────
     check_for_update_notification();
 
-    // ── Modo 2: curlp 'curl ...'  o  curlp curl ... ───────────────────
+    // ── Modo 2: pcurl 'curl ...'  o  pcurl curl ... ───────────────────
     execute_curl_and_display(&command_str);
 }
 

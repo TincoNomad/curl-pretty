@@ -6,21 +6,21 @@ pub fn print_help() {
     println!();
     println!(
         "  {} {}  —  HTTP pretty-printer for your terminal",
-        "curlp".cyan().bold(),
+        "pcurl".cyan().bold(),
         format!("v{}", v).dimmed()
     );
     println!("  {}", "─".repeat(54).dimmed());
     println!();
     println!("  {}", "USAGE MODES".white().bold());
     println!();
-    println!("  {}  {}", "curlp".cyan(), "[OPCIONES]".white());
+    println!("  {}  {}", "pcurl".cyan(), "[OPCIONES]".white());
     println!(
         "  {}  {}",
-        "curlp".cyan(),
+        "pcurl".cyan(),
         "'curl [opciones] <url>'".white()
     );
-    println!("  {}  {}", "curlp".cyan(), "<websocket-url>".white());
-    println!("  {}  {}", "curl".cyan(), "-si <url> | curlp".white());
+    println!("  {}  {}", "pcurl".cyan(), "<websocket-url>".white());
+    println!("  {}  {}", "curl".cyan(), "-si <url> | pcurl".white());
     println!();
     println!("  {}", "OPTIONS".white().bold());
     println!();
@@ -42,14 +42,14 @@ pub fn print_help() {
     println!(
         "  {}  {}",
         "1. Argument mode".yellow().bold(),
-        "curlp executes curl and prettifies the response".white()
+        "pcurl executes curl and prettifies the response".white()
     );
-    println!("     {}", "pass curl raw output directly to curlp".dimmed());
+    println!("     {}", "pass curl raw output directly to pcurl".dimmed());
     println!();
     println!(
         "  {}  {}",
         "2. Pipe mode".yellow().bold(),
-        "curl -si <url> | curlp".white()
+        "curl -si <url> | pcurl".white()
     );
     println!(
         "     {}",
@@ -60,12 +60,12 @@ pub fn print_help() {
     println!();
     println!(
         "  {}",
-        "Direct connection  curlp wss://echo.websocket.org".white()
+        "Direct connection  pcurl wss://echo.websocket.org".white()
     );
     println!(
         "  {}  {}",
         "wscat command".white(),
-        "curlp 'wscat -c wss://echo.websocket.org'".white()
+        "pcurl 'wscat -c wss://echo.websocket.org'".white()
     );
     println!();
     println!("  {}", "HTTP EXAMPLES".white().bold());
@@ -73,13 +73,13 @@ pub fn print_help() {
     println!("  {}", "# Simple GET".dimmed());
     println!(
         "  {}",
-        "curlp 'curl https://jsonplaceholder.typicode.com/todos/1'".dimmed()
+        "pcurl 'curl https://jsonplaceholder.typicode.com/todos/1'".dimmed()
     );
     println!();
     println!("  {}", "# POST with JSON".dimmed());
     println!(
         "  {}",
-        "curlp 'curl -X POST https://httpbin.org/post \\".dimmed()
+        "pcurl 'curl -X POST https://httpbin.org/post \\".dimmed()
     );
     println!(
         "  {}",
@@ -93,19 +93,19 @@ pub fn print_help() {
     println!("  {}", "# With authentication".dimmed());
     println!(
         "  {}",
-        "curlp 'curl -u user:password https://api.example.com/private'".dimmed()
+        "pcurl 'curl -u user:password https://api.example.com/private'".dimmed()
     );
     println!();
     println!("  {}", "# Custom headers".dimmed());
     println!(
         "  {}",
-        "curlp 'curl -H \"Authorization: Bearer <token>\" https://api.example.com/me'".dimmed()
+        "pcurl 'curl -H \"Authorization: Bearer <token>\" https://api.example.com/me'".dimmed()
     );
     println!();
     println!("  {}", "# Follow redirects".dimmed());
     println!(
         "  {}",
-        "curlp 'curl -L https://httpbin.org/redirect/1'".dimmed()
+        "pcurl 'curl -L https://httpbin.org/redirect/1'".dimmed()
     );
     println!();
     println!("  {}", "HTTP FEATURES".white().bold());
@@ -134,13 +134,13 @@ pub fn print_help() {
     println!(
         "  {}  {}",
         "Universal script:".dimmed(),
-        "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash"
+        "curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash"
             .white()
     );
     println!(
         "  {}  {}",
         "Manual:".dimmed(),
-        "https://github.com/tinconomad/curl-pretty/releases".white()
+        "https://github.com/tinconomad/pretty-curl/releases".white()
     );
     println!();
 }
@@ -149,16 +149,16 @@ pub fn print_doctor() {
     use std::env;
 
     println!();
-    println!("  {}  —  Diagnóstico de instalación", "curlp".cyan().bold());
+    println!("  {}  —  Diagnóstico de instalación", "pcurl".cyan().bold());
     println!("  {}", "─".repeat(54).dimmed());
     println!();
 
     // Verificar ubicación del binario
     let current_exe = env::current_exe().ok();
     let install_paths = vec![
-        format!("{}/.local/bin/curlp", env::var("HOME").unwrap_or_default()),
-        "/usr/local/bin/curlp".to_string(),
-        "/usr/bin/curlp".to_string(),
+        format!("{}/.local/bin/pcurl", env::var("HOME").unwrap_or_default()),
+        "/usr/local/bin/pcurl".to_string(),
+        "/usr/bin/pcurl".to_string(),
     ];
 
     println!("  {}", "UBICACIÓN DEL BINARIO".white().bold());
@@ -294,7 +294,7 @@ pub fn print_doctor() {
         );
         println!();
         println!("  {}", "Prueba con:".dimmed());
-        println!("  {}", "curlp 'curl https://httpbin.org/get'".cyan());
+        println!("  {}", "pcurl 'curl https://httpbin.org/get'".cyan());
     } else {
         println!(
             "  {}  {}",

@@ -2,17 +2,17 @@
 set -e
 
 INSTALL_DIR="${HOME}/.local/bin"
-BINARY="curlp"
-REPO="tinconomad/curl-pretty"
+BINARY="pcurl"
+REPO="tinconomad/pretty-curl"
 
 print_banner() {
   echo -e "\033[90m┌───────────────────────────┐\033[0m"
-  echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀█ █  \033[0m\033[90m           │\033[0m"
-  echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █  \033[0m\033[90m           │\033[0m"
-  echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀\033[0m\033[90m           │\033[0m"
-  echo -e "\033[90m│\033[95m\033[1m █▀█ █▀█ █▀▀ ▀█▀ ▀█▀ █ █\033[0m\033[90m   │\033[0m"
-  echo -e "\033[90m│\033[95m\033[1m █▀▀ █▀▄ █▀▀  █   █  ▀▄▀ \033[0m\033[90m  │\033[0m"
-  echo -e "\033[90m│\033[95m\033[1m ▀   ▀ ▀ ▀▀▀  ▀   ▀   ▀  \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m █▀█ █▀▀ █▀▀ █ ▀▀█ ▀▀▀     \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m █▀▀ █▀  █▀▀ █  █   █      \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[95m\033[1m ▀   ▀▀▀ ▀▀▀ ▀  ▀   ▀      \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀▄ █             \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █             \033[0m\033[90m  │\033[0m"
+  echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀           \033[0m\033[90m  │\033[0m"
   echo -e "\033[90m└───────────────────────────┘\033[0m"
   echo ""
 }
@@ -53,18 +53,18 @@ detect_platform() {
 # Descargar binario precompilado
 download_binary() {
   local version=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-  local asset_name="curlp-$PLATFORM"
+  local asset_name="pcurl-$PLATFORM"
   
   if [[ "$PLATFORM" == *"windows"* ]]; then
     asset_name="$asset_name.exe"
   fi
   
-  echo "  ➡️  Downloading curlp $version for $PLATFORM..."
+  echo "  ➡️  Downloading pcurl $version for $PLATFORM..."
   
   local download_url="https://github.com/$REPO/releases/latest/download/$asset_name"
   
   if ! curl -fsSL "$download_url" -o "$INSTALL_DIR/$BINARY"; then
-    echo "  ❌ Error downloading curlp"
+    echo "  ❌ Error downloading pcurl"
     echo "    Check: https://github.com/$REPO/releases"
     exit 1
   fi
@@ -80,7 +80,7 @@ try_rust_install() {
     cp "target/release/$BINARY" "$INSTALL_DIR/$BINARY"
     chmod +x "$INSTALL_DIR/$BINARY"
   else
-    echo "  ❌ Could not download nor compile curlp"
+    echo "  ❌ Could not download nor compile pcurl"
     echo "    Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
     exit 1
   fi
@@ -109,7 +109,7 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
   echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 else
-  echo "  ✅ Ready! Test: curlp 'curl https://httpbin.org/get'"
-  echo "  ✅ Or WebSocket: curlp wss://echo.websocket.org"
+  echo "  ✅ Ready! Test: pcurl 'curl https://httpbin.org/get'"
+  echo "  ✅ Or WebSocket: pcurl wss://echo.websocket.org"
   echo ""
 fi

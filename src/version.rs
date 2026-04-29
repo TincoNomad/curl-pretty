@@ -2,7 +2,7 @@ use colored::*;
 
 pub fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
     let response =
-        ureq::get("https://api.github.com/repos/tinconomad/curl-pretty/releases/latest").call()?;
+        ureq::get("https://api.github.com/repos/tinconomad/pretty-curl/releases/latest").call()?;
 
     let text = response.into_string()?;
     if let Some(tag_line) = text.lines().find(|line| line.contains("\"tag_name\"")) {
@@ -15,12 +15,12 @@ pub fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
     Err("Failed to parse version".into())
 }
 
-pub fn update_curlp() {
-    println!("{} Updating curlp...", "🔄".cyan());
+pub fn update_pcurl() {
+    println!("{} Updating pcurl...", "🔄".cyan());
 
     match std::process::Command::new("sh")
         .arg("-c")
-        .arg("curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash")
+        .arg("curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash")
         .status()
     {
         Ok(status) if status.success() => {
@@ -29,7 +29,7 @@ pub fn update_curlp() {
         }
         Ok(_) => {
             println!("{} Update failed. Please try manually:", "❌".red());
-            println!("  {}", "curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash".cyan());
+            println!("  {}", "curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash".cyan());
         }
         Err(e) => {
             println!("{} Failed to run update: {}", "❌".red(), e);
@@ -46,7 +46,7 @@ pub fn check_for_update_notification() {
                 "⚠️".yellow(),
                 current,
                 latest.green(),
-                "curlp --update".cyan()
+                "pcurl --update".cyan()
             );
             eprintln!(); // Add spacing
         }

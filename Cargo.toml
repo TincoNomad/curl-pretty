@@ -1,5 +1,5 @@
 [package]
-name = "curlp"
+name = "pcurl"
 version = "1.2.0"
 edition = "2021"
 

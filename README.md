@@ -1,4 +1,4 @@
-# curlp
+# pcurl
 
 HTTP pretty-printer for your terminal. Takes raw `curl` output and makes it readable — like Postman or Bruno, but without leaving your terminal.
 
@@ -30,7 +30,7 @@ HTTP pretty-printer for your terminal. Takes raw `curl` output and makes it read
 **No Rust needed. Downloads precompiled binary for your system:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/tinconomad/curl-pretty/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash
 ```
 
 The installer automatically detects:
@@ -41,22 +41,22 @@ The installer automatically detects:
 
 ### Option 2 — Manual Download
 
-Go to [GitHub Releases](https://github.com/tinconomad/curl-pretty/releases) and download:
+Go to [GitHub Releases](https://github.com/tinconomad/pretty-curl/releases) and download:
 
-- `curlp-linux-x64` - Linux 64-bit
-- `curlp-linux-arm64` - Linux ARM64
-- `curlp-macos-x64` - macOS Intel
-- `curlp-macos-arm64` - macOS Apple Silicon
-- `curlp-windows-x64.exe` - Windows 64-bit
+- `pcurl-linux-x64` - Linux 64-bit
+- `pcurl-linux-arm64` - Linux ARM64
+- `pcurl-macos-x64` - macOS Intel
+- `pcurl-macos-arm64` - macOS Apple Silicon
+- `pcurl-windows-x64.exe` - Windows 64-bit
 
 Then:
 ```bash
 # Linux/macOS
-chmod +x curlp-*
-sudo cp curlp-* /usr/local/bin/curlp
+chmod +x pcurl-*
+sudo cp pcurl-* /usr/local/bin/pcurl
 
 # Windows
-# Move curlp.exe to a directory in your PATH
+# Move pcurl.exe to a directory in your PATH
 ```
 
 ### Option 3 — Compile from Source
@@ -64,10 +64,10 @@ sudo cp curlp-* /usr/local/bin/curlp
 If you have Rust installed:
 
 ```bash
-git clone https://github.com/tinconomad/curl-pretty
-cd curl-pretty
+git clone https://github.com/tinconomad/pretty-curl
+cd pretty-curl
 cargo build --release
-sudo cp target/release/curlp /usr/local/bin/
+sudo cp target/release/pcurl /usr/local/bin/
 ```
 
 ---
@@ -76,20 +76,20 @@ sudo cp target/release/curlp /usr/local/bin/
 
 ### Mode 1 — Argument Mode (recommended)
 
-`curlp` executes `curl` for you and prettifies the response:
+`pcurl` executes `curl` for you and prettifies the response:
 
 ```bash
 # Simple GET
-curlp 'curl https://api.example.com/users/1'
+pcurl 'curl https://api.example.com/users/1'
 
 # POST with JSON
-curlp 'curl -X POST https://api.example.com/users \
+pcurl 'curl -X POST https://api.example.com/users \
   -H "Authorization: Bearer <token>" \
   -d '"'{"name":"Juan","role":"admin"}'"'"''
 
 # With extra flags
-curlp 'curl -L -k https://api.internal.com/health'
-curlp 'curl -u user:password https://api.example.com/private'
+pcurl 'curl -L -k https://api.internal.com/health'
+pcurl 'curl -u user:password https://api.example.com/private'
 ```
 
 ### Mode 2 — Pipe
@@ -97,8 +97,8 @@ curlp 'curl -u user:password https://api.example.com/private'
 If you prefer to execute `curl` yourself, use `-si` and pipe:
 
 ```bash
-curl -si https://api.example.com/users/1 | curlp
-curl -si -X DELETE https://api.example.com/users/42 | curlp
+curl -si https://api.example.com/users/1 | pcurl
+curl -si -X DELETE https://api.example.com/users/42 | pcurl
 ```
 
 > `-s` silences progress bar, `-i` includes headers in stdout.
@@ -109,11 +109,11 @@ Add this to your `.bashrc` / `.zshrc`:
 
 ```bash
 # Prettify any curl automatically
-curlp() { command curlp "$@"; }
+pcurl() { command pcurl "$@"; }
 
 # Or a shorter alias
-alias cget='curlp curl'
-alias cpost='curlp curl -X POST'
+alias cget='pcurl curl'
+alias cpost='pcurl curl -X POST'
 ```
 
 ---
@@ -137,11 +137,11 @@ alias cpost='curlp curl -X POST'
 
 ```bash
 # Connect to WebSocket URL
-curlp wss://echo.websocket.org
-curlp ws://localhost:8080/chat
+pcurl wss://echo.websocket.org
+pcurl ws://localhost:8080/chat
 
 # wscat-style commands also work
-curlp wscat -c wss://echo.websocket.org
+pcurl wscat -c wss://echo.websocket.org
 ```
 
 Features:
@@ -173,7 +173,7 @@ Type messages and press Enter. /quit to exit.
 
 ## Self-Update
 
-`curlp` checks for newer versions automatically:
+`pcurl` checks for newer versions automatically:
 
 - **On `--version`**: Shows current version and alerts if a newer one exists
 - **On every HTTP request**: Silent background check; prints a notice if outdated

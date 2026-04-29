@@ -25,12 +25,12 @@ fn test_integration_with_real_json_response() {
     let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"id\": 1, \"name\": \"test\", \"active\": true}";
     let mut cat_child = create_temp_input(response);
 
-    // Test curlp with the input using compiled binary
-    let output = Command::new("./target/debug/curlp")
-        .env("CURLP_TEST_MODE", "1")
+    // Test pcurl with the input using compiled binary
+    let output = Command::new("./target/debug/pcurl")
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -48,11 +48,11 @@ fn test_integration_with_xml_response() {
     let mut cat_child = create_temp_input(response);
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
-        .env("CURLP_TEST_MODE", "1")
+        .args(&["run", "--bin", "pcurl", "--"])
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -70,11 +70,11 @@ fn test_integration_with_plain_text_response() {
     let mut cat_child = create_temp_input(response);
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
-        .env("CURLP_TEST_MODE", "1")
+        .args(&["run", "--bin", "pcurl", "--"])
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -90,11 +90,11 @@ fn test_integration_error_response() {
     let mut cat_child = create_temp_input(response);
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
-        .env("CURLP_TEST_MODE", "1")
+        .args(&["run", "--bin", "pcurl", "--"])
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -111,11 +111,11 @@ fn test_integration_empty_response() {
     let mut cat_child = create_temp_input(response);
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
-        .env("CURLP_TEST_MODE", "1")
+        .args(&["run", "--bin", "pcurl", "--"])
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -131,11 +131,11 @@ fn test_integration_redirect_response() {
     let mut cat_child = create_temp_input(response);
 
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
-        .env("CURLP_TEST_MODE", "1")
+        .args(&["run", "--bin", "pcurl", "--"])
+        .env("PCURL_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
-        .expect("Failed to run curlp");
+        .expect("Failed to run pcurl");
 
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);

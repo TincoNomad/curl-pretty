@@ -19,28 +19,28 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: curlp
-            asset_name: curlp-linux-x64
+            artifact_name: pcurl
+            asset_name: pcurl-linux-x64
 
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-            artifact_name: curlp
-            asset_name: curlp-linux-arm64
+            artifact_name: pcurl
+            asset_name: pcurl-linux-arm64
 
           - target: x86_64-apple-darwin
             os: macos-latest
-            artifact_name: curlp
-            asset_name: curlp-macos-x64
+            artifact_name: pcurl
+            asset_name: pcurl-macos-x64
 
           - target: aarch64-apple-darwin
             os: macos-latest
-            artifact_name: curlp
-            asset_name: curlp-macos-arm64
+            artifact_name: pcurl
+            asset_name: pcurl-macos-arm64
 
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            artifact_name: curlp.exe
-            asset_name: curlp-windows-x64.exe
+            artifact_name: pcurl.exe
+            asset_name: pcurl-windows-x64.exe
 
     steps:
       - uses: actions/checkout@v4
@@ -97,21 +97,21 @@ jobs:
       - name: Prepare artifacts
         run: |
           mkdir -p upload
-          cp artifacts/curlp-linux-x64/curlp           upload/curlp-linux-x64       || true
-          cp artifacts/curlp-linux-arm64/curlp          upload/curlp-linux-arm64     || true
-          cp artifacts/curlp-macos-x64/curlp            upload/curlp-macos-x64       || true
-          cp artifacts/curlp-macos-arm64/curlp          upload/curlp-macos-arm64     || true
-          cp artifacts/curlp-windows-x64.exe/curlp.exe  upload/curlp-windows-x64.exe || true
+          cp artifacts/pcurl-linux-x64/pcurl           upload/pcurl-linux-x64       || true
+          cp artifacts/pcurl-linux-arm64/pcurl          upload/pcurl-linux-arm64     || true
+          cp artifacts/pcurl-macos-x64/pcurl            upload/pcurl-macos-x64       || true
+          cp artifacts/pcurl-macos-arm64/pcurl          upload/pcurl-macos-arm64     || true
+          cp artifacts/pcurl-windows-x64.exe/pcurl.exe  upload/pcurl-windows-x64.exe || true
           ls -la upload/
 
       - name: Create Release
         run: |
           gh release create ${{ github.ref_name }} \
-            upload/curlp-linux-x64 \
-            upload/curlp-linux-arm64 \
-            upload/curlp-macos-x64 \
-            upload/curlp-macos-arm64 \
-            upload/curlp-windows-x64.exe \
+            upload/pcurl-linux-x64 \
+            upload/pcurl-linux-arm64 \
+            upload/pcurl-macos-x64 \
+            upload/pcurl-macos-arm64 \
+            upload/pcurl-windows-x64.exe \
             --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
