@@ -8,10 +8,13 @@ fn create_temp_input(response: &str) -> std::process::Child {
         .spawn()
         .expect("Failed to spawn cat process");
 
-    if let Some(stdin) = child.stdin.as_mut() {
+    if let Some(stdin) = child.stdin.take() {
+        let mut stdin = stdin;
         stdin
             .write_all(response.as_bytes())
             .expect("Failed to write to stdin");
+        // Close stdin so cat sends EOF and terminates
+        drop(stdin);
     }
 
     child
@@ -22,9 +25,8 @@ fn test_integration_with_real_json_response() {
     let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"id\": 1, \"name\": \"test\", \"active\": true}";
     let mut cat_child = create_temp_input(response);
 
-    // Test curlp with the input
-    let output = Command::new("cargo")
-        .args(&["run", "--bin", "curlp", "--"])
+    // Test curlp with the input using compiled binary
+    let output = Command::new("./target/debug/curlp")
         .env("CURLP_TEST_MODE", "1")
         .stdin(cat_child.stdout.take().unwrap())
         .output()
