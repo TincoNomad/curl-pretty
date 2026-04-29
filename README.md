@@ -171,8 +171,20 @@ Type messages and press Enter. /quit to exit.
 
 ---
 
+## Self-Update
+
+`curlp` checks for newer versions automatically:
+
+- **On `--version`**: Shows current version and alerts if a newer one exists
+- **On every HTTP request**: Silent background check; prints a notice if outdated
+- **`--update`**: Runs the installer to update to the latest release
+- **`--doctor`**: Diagnoses installation issues (binary location, PATH, curl dependency, connectivity)
+
+---
+
 ## Contributing
 
-PRs welcome. Code is in two modules:
-- `src/main.rs` — HTTP response parser and rendering
+PRs welcome. Code is in three modules:
+- `src/main.rs` — HTTP response parser, rendering, version checking, self-update, doctor diagnostic
 - `src/curl_parser.rs` — curl command tokenization and reconstruction
+- `src/ws_client.rs` — WebSocket client implementation

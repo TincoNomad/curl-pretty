@@ -18,7 +18,7 @@ print_banner() {
 }
 
 print_banner
-echo "  Make your HTTP requests beautiful 💅 ✦  v1.1.0"
+echo "  Make your HTTP requests beautiful 💅 ✦  v1.2.0"
 echo "  ───────────────────────────────────────────────"
 echo ""
 

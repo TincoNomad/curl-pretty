@@ -6,6 +6,13 @@
 - `cargo run --bin curlp -- [args]` - run with curl arguments (recommended)
 - `curl -si <url> | cargo run --bin curlp --` - pipe mode
 
+## CLI Options
+
+- `--help` / `-h` - Show help
+- `--version` / `-V` - Show version (also checks for updates)
+- `--doctor` / `--check` - Diagnose installation and PATH
+- `--update` - Update to latest version via install.sh
+
 ## Testing
 
 - `cargo test` - runs integration tests
@@ -24,20 +31,34 @@
 
 ## Project Structure
 
-- `src/main.rs` - HTTP response parsing, display logic, WebSocket detection
+- `src/main.rs` - HTTP response parsing, display logic, WebSocket detection, version checking, self-update, doctor diagnostic
 - `src/ws_client.rs` - WebSocket client implementation
 - `src/curl_parser.rs` - curl command tokenization and reconstruction
 - `tests/integration_tests.rs` - End-to-end tests
 - `install.sh` - Universal installer script
 - `.github/workflows/release.yml` - Multi-platform builds and releases
+- `.github/workflows/quality_checks.yml` - CI: fmt, clippy, test, build on push/PR
+
+## Dependencies
+
+- `serde_json` - JSON parsing and formatting
+- `colored` - Terminal colors
+- `atty` - Stdin detection (pipe mode)
+- `tokio` + `tokio-tungstenite` + `futures-util` - WebSocket async runtime
+- `url` - URL parsing for WebSocket
+- `openssl` (vendored) - TLS support
+- `ureq` - HTTP client for version checking (GitHub API)
 
 ## Development Guidelines
 
 - **New HTTP features**: Add to `src/main.rs` in display functions
 - **New WebSocket features**: Add to `src/ws_client.rs`
 - **Curl parsing issues**: Fix in `src/curl_parser.rs`
+- **New CLI flags**: Add match arm in `main()`, update `print_help()`, add function
 - **Always test**: Add integration tests for new features
 - **Update help**: Modify `print_help()` in `src/main.rs`
+- **Version checking**: Uses `ureq` to query GitHub Releases API (`check_latest_version()`)
+- **Silent update notification**: `check_for_update_notification()` runs on every HTTP request
 
 ## Common Tasks
 
@@ -51,7 +72,14 @@
 2. Test with problematic command
 3. Update parser logic if needed
 
+### Add new CLI flag
+1. Add match arm in `main()` function
+2. Create handler function (e.g., `print_doctor()`)
+3. Update `print_help()` with new option
+4. Add integration test if applicable
+
 ### Update version
 1. Change version in `Cargo.toml`
-2. Tag with `git tag v1.0.1`
-3. Push: `git push --tags`
+2. Update version in `install.sh` (hardcoded in banner)
+3. Tag with `git tag v1.0.1`
+4. Push: `git push --tags`
