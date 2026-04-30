@@ -13,7 +13,7 @@ print_banner() {
   echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀         \033[0m\033[90m│\033[0m"
-  echo -e "\033[90m└───────────────── v1.3.4 ┘\033[0m"
+  echo -e "\033[90m└───────────────── v1.3.5 ┘\033[0m"
   echo ""
 }
 
@@ -26,13 +26,20 @@ echo "     This script downloads and installs pcurl from GitHub."
 echo "     If you prefer manual installation, see:"
 echo "     https://github.com/TincoNomad/pretty-curl#installation"
 echo ""
-read -p "  Continue with installation? (y/N) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo "  Installation cancelled."
-  exit 0
+
+# Solo pedir confirmación en modo interactivo (no cuando se pipea)
+if [[ -t 0 ]]; then
+  read -p "  Continue with installation? (y/N) " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "  Installation cancelled."
+    exit 0
+  fi
+  echo ""
+else
+  echo "  ➡️  Running in non-interactive mode (piped)"
+  echo ""
 fi
-echo ""
 
 # Detectar sistema operativo y arquitectura
 detect_platform() {
