@@ -3,7 +3,7 @@ set -e
 
 INSTALL_DIR="${HOME}/.local/bin"
 BINARY="pcurl"
-REPO="tinconomad/pretty-curl"
+REPO="TincoNomad/pretty-curl"
 
 print_banner() {
   echo -e "\033[90m┌───────────────────────────┐\033[0m"
@@ -18,7 +18,7 @@ print_banner() {
 }
 
 print_banner
-echo "  Make your HTTP requests beautiful 💅 ✦  v1.2.0"
+echo "  Make your HTTP requests beautiful 💅 ✦  v1.3.0"
 echo "  ───────────────────────────────────────────────"
 echo ""
 

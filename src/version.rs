@@ -2,7 +2,7 @@ use colored::*;
 
 pub fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
     let response =
-        ureq::get("https://api.github.com/repos/tinconomad/pretty-curl/releases/latest").call()?;
+        ureq::get("https://api.github.com/repos/TincoNomad/pretty-curl/releases/latest").call()?;
 
     let text = response.into_string()?;
     if let Some(tag_line) = text.lines().find(|line| line.contains("\"tag_name\"")) {
@@ -20,7 +20,7 @@ pub fn update_pcurl() {
 
     match std::process::Command::new("sh")
         .arg("-c")
-        .arg("curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash")
+        .arg("curl -sSL https://raw.githubusercontent.com/TincoNomad/pretty-curl/main/install.sh | bash")
         .status()
     {
         Ok(status) if status.success() => {
@@ -29,7 +29,7 @@ pub fn update_pcurl() {
         }
         Ok(_) => {
             println!("{} Update failed. Please try manually:", "❌".red());
-            println!("  {}", "curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash".cyan());
+            println!("  {}", "curl -sSL https://raw.githubusercontent.com/TincoNomad/pretty-curl/main/install.sh | bash".cyan());
         }
         Err(e) => {
             println!("{} Failed to run update: {}", "❌".red(), e);

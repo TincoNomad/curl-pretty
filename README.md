@@ -30,7 +30,7 @@ HTTP pretty-printer for your terminal. Takes raw `curl` output and makes it read
 **No Rust needed. Downloads precompiled binary for your system:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/TincoNomad/pretty-curl/main/install.sh | bash
 ```
 
 The installer automatically detects:
@@ -41,7 +41,7 @@ The installer automatically detects:
 
 ### Option 2 — Manual Download
 
-Go to [GitHub Releases](https://github.com/tinconomad/pretty-curl/releases) and download:
+Go to [GitHub Releases](https://github.com/TincoNomad/pretty-curl/releases) and download:
 
 - `pcurl-linux-x64` - Linux 64-bit
 - `pcurl-linux-arm64` - Linux ARM64
@@ -64,7 +64,7 @@ sudo cp pcurl-* /usr/local/bin/pcurl
 If you have Rust installed:
 
 ```bash
-git clone https://github.com/tinconomad/pretty-curl
+git clone https://github.com/TincoNomad/pretty-curl
 cd pretty-curl
 cargo build --release
 sudo cp target/release/pcurl /usr/local/bin/

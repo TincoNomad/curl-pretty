@@ -134,13 +134,13 @@ pub fn print_help() {
     println!(
         "  {}  {}",
         "Universal script:".dimmed(),
-        "curl -sSL https://raw.githubusercontent.com/tinconomad/pretty-curl/main/install.sh | bash"
+        "curl -sSL https://raw.githubusercontent.com/TincoNomad/pretty-curl/main/install.sh | bash"
             .white()
     );
     println!(
         "  {}  {}",
         "Manual:".dimmed(),
-        "https://github.com/tinconomad/pretty-curl/releases".white()
+        "https://github.com/TincoNomad/pretty-curl/releases".white()
     );
     println!();
 }
