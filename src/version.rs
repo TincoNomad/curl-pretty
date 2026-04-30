@@ -40,7 +40,9 @@ pub fn update_pcurl() {
 pub fn check_for_update_notification() {
     let current = env!("CARGO_PKG_VERSION");
     if let Ok(latest) = check_latest_version() {
-        if latest != current {
+        // Normalizar: quitar prefijo 'v' si existe para comparación correcta
+        let latest_clean = latest.trim_start_matches('v');
+        if latest_clean != current {
             eprintln!(
                 "{} New version available: {} → {} (run {} to update)",
                 "⚠️".yellow(),
