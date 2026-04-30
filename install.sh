@@ -109,7 +109,11 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
   echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 else
-  echo "  ✅ Ready! Test: pcurl 'curl https://httpbin.org/get'"
-  echo "  ✅ Or WebSocket: pcurl wss://echo.websocket.org"
+  echo ""
+  echo "  ✅ Installed successfully! Quick examples:"
+  echo ""
+  echo "    pcurl 'curl https://httpbin.org/get'     # HTTP mode"
+  echo "    pcurl wss://echo.websocket.org           # WebSocket mode"
+  echo "    pcurl --help                             # Full help"
   echo ""
 fi
