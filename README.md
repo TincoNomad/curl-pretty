@@ -182,6 +182,24 @@ Type messages and press Enter. /quit to exit.
 
 ---
 
+## Security Notice
+
+⚠️ **This tool is designed for local development and testing only.**
+
+- **Auto-update**: Downloads and executes code from GitHub. If you don't trust this, use manual download or compile from source.
+- **Pipe mode**: `pcurl` only reads from stdin and displays output — it does not execute arbitrary code.
+- **Argument mode**: Passes arguments directly to `curl`. Be careful with untrusted input.
+- **For production use**: Review the code and consider security implications before use in sensitive environments.
+
+### Safe Usage Guidelines
+
+✅ Safe: Testing your own APIs locally  
+✅ Safe: Connecting to trusted internal services  
+⚠️ Caution: Using with `-k` / `--insecure` in production  
+❌ Avoid: Piping untrusted network data directly to `pcurl`
+
+---
+
 ## Contributing
 
 PRs welcome. Code is in three modules:

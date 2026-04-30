@@ -13,13 +13,25 @@ print_banner() {
   echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀         \033[0m\033[90m│\033[0m"
-  echo -e "\033[90m└───────────────── v1.3.2 ┘\033[0m"
+  echo -e "\033[90m└───────────────── v1.3.3 ┘\033[0m"
   echo ""
 }
 
 print_banner
 echo "  Make your HTTP requests beautiful 💅 "
 echo "  ─────────────────────────────────────"
+echo ""
+echo "  ⚠️  Security Notice:"
+echo "     This script downloads and installs pcurl from GitHub."
+echo "     If you prefer manual installation, see:"
+echo "     https://github.com/TincoNomad/pretty-curl#installation"
+echo ""
+read -p "  Continue with installation? (y/N) " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo "  Installation cancelled."
+  exit 0
+fi
 echo ""
 
 # Detectar sistema operativo y arquitectura

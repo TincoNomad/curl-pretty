@@ -119,8 +119,30 @@ fn main() {
 // Execution
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Validar que la URL solo use protocolos seguros o explícitamente permitidos
+fn is_safe_url(url: &str) -> bool {
+    url.starts_with("http://") 
+        || url.starts_with("https://")
+        || url.starts_with("ws://")
+        || url.starts_with("wss://")
+        || url.starts_with("ftp://")
+        || url.starts_with("file://")
+}
+
 fn execute_curl_and_display(command_str: &str) {
     let parsed = CurlCommand::parse(command_str);
+
+    // Validar URL para prevenir inyección de comandos maliciosos
+    if !parsed.url.is_empty() && !is_safe_url(&parsed.url) {
+        eprintln!(
+            "{} {}: URL protocol not allowed: {}",
+            "❌".red().bold(),
+            "Error".red().bold(),
+            &parsed.url.split(':').next().unwrap_or("unknown")
+        );
+        eprintln!("{} Allowed protocols: http, https, ws, wss, ftp, file", "➡️".dimmed());
+        std::process::exit(1);
+    }
 
     println!();
     let method_label = parsed
