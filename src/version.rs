@@ -1,15 +1,15 @@
 use colored::*;
+use serde_json::Value;
 
 pub fn check_latest_version() -> Result<String, Box<dyn std::error::Error>> {
     let response =
         ureq::get("https://api.github.com/repos/TincoNomad/pretty-curl/releases/latest").call()?;
 
     let text = response.into_string()?;
-    if let Some(tag_line) = text.lines().find(|line| line.contains("\"tag_name\"")) {
-        if let Some(tag) = tag_line.split(':').nth(1) {
-            let tag = tag.trim().trim_matches('"');
-            return Ok(tag.to_string());
-        }
+    let json: Value = serde_json::from_str(&text)?;
+
+    if let Some(tag) = json.get("tag_name").and_then(|v| v.as_str()) {
+        return Ok(tag.to_string());
     }
 
     Err("Failed to parse version".into())
