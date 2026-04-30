@@ -27,9 +27,9 @@ echo "     If you prefer manual installation, see:"
 echo "     https://github.com/TincoNomad/pretty-curl#installation"
 echo ""
 
-# Solo pedir confirmación en modo interactivo (no cuando se pipea)
-if [[ -t 0 ]]; then
-  read -p "  Continue with installation? (y/N) " -n 1 -r
+# Pedir confirmación si hay terminal disponible (lee de /dev/tty para funcionar con pipe)
+if [[ -t 0 ]] || [[ -e /dev/tty ]]; then
+  read -p "  Continue with installation? (y/N) " -n 1 -r < /dev/tty
   echo ""
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "  Installation cancelled."
@@ -120,19 +120,52 @@ fi
 echo "  ✅ Installed in $INSTALL_DIR/$BINARY"
 echo ""
 
+# Agregar al PATH automáticamente si no está
+add_to_path() {
+  local rc_file
+  if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == */zsh ]]; then
+    rc_file="$HOME/.zshrc"
+  else
+    rc_file="$HOME/.bashrc"
+  fi
+
+  # Agregar solo si no existe ya en el rc file
+  if ! grep -q '.local/bin' "$rc_file" 2>/dev/null; then
+    echo '' >> "$rc_file"
+    echo '# Added by pcurl installer' >> "$rc_file"
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc_file"
+    echo "  ✅ Added ~/.local/bin to $rc_file"
+  fi
+
+  # Aplicar para la sesión actual
+  export PATH="$HOME/.local/bin:$PATH"
+}
+
 # Verificar PATH
 if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
   echo "  ⚠️  $INSTALL_DIR is not in your PATH."
-  echo "     Add this to your .bashrc or .zshrc:"
+  if [[ -t 0 ]] || [[ -e /dev/tty ]]; then
+    read -p "  Add it automatically? Press Y to add, any other key to skip: " -n 1 -r < /dev/tty
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      add_to_path
+    else
+      echo "     Add this to your shell config manually:"
+      echo ""
+      echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
+    fi
+  else
+    # Modo no-interactivo: agregar automáticamente
+    add_to_path
+  fi
   echo ""
-  echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
-  echo ""
+  echo "  ✅ Installed successfully! Restart your terminal, then:"
 else
   echo ""
   echo "  ✅ Installed successfully! Quick examples:"
-  echo ""
-  echo "    pcurl 'curl https://httpbin.org/get'     # HTTP mode"
-  echo "    pcurl wss://echo.websocket.org           # WebSocket mode"
-  echo "    pcurl --help                             # Full help"
-  echo ""
 fi
+echo ""
+echo "    pcurl 'curl https://httpbin.org/get'     # HTTP mode"
+echo "    pcurl wss://echo.websocket.org           # WebSocket mode"
+echo "    pcurl --help                             # Full help"
+echo ""
