@@ -121,7 +121,7 @@ fn main() {
 
 // Validar que la URL solo use protocolos seguros o explícitamente permitidos
 fn is_safe_url(url: &str) -> bool {
-    url.starts_with("http://") 
+    url.starts_with("http://")
         || url.starts_with("https://")
         || url.starts_with("ws://")
         || url.starts_with("wss://")
@@ -140,7 +140,10 @@ fn execute_curl_and_display(command_str: &str) {
             "Error".red().bold(),
             &parsed.url.split(':').next().unwrap_or("unknown")
         );
-        eprintln!("{} Allowed protocols: http, https, ws, wss, ftp, file", "➡️".dimmed());
+        eprintln!(
+            "{} Allowed protocols: http, https, ws, wss, ftp, file",
+            "➡️".dimmed()
+        );
         std::process::exit(1);
     }
 

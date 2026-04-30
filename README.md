@@ -171,6 +171,21 @@ Type messages and press Enter. /quit to exit.
 
 ---
 
+## Why pcurl vs alternatives
+
+| | pcurl | xh | HTTPie | curlie |
+|---|---|---|---|---|
+| Accepts literal curl commands | ✓ | ✗ | ✗ | partial |
+| WebSocket support | ✓ | ✗ | ✓ | ✗ |
+| Single binary, no runtime | ✓ | ✓ | ✗ | ✓ |
+| Written in | Rust | Rust | Python | Go |
+
+If you already know curl and just want readable output, pcurl requires
+zero new syntax. If you're comparing with xh: xh is great but doesn't
+support WebSocket and requires learning its own request format.
+
+---
+
 ## Self-Update
 
 `pcurl` checks for newer versions automatically:
