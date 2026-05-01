@@ -13,7 +13,7 @@ print_banner() {
   echo -e "\033[90m│\033[96m\033[1m █▀▀ █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m █   █ █ █▀▄ █           \033[0m\033[90m│\033[0m"
   echo -e "\033[90m│\033[96m\033[1m ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀         \033[0m\033[90m│\033[0m"
-  echo -e "\033[90m└───────────────── v1.3.9 ┘\033[0m"
+  echo -e "\033[90m└──────────────── v1.3.10 ┘\033[0m"
   echo ""
 }
 
@@ -120,20 +120,45 @@ fi
 echo "  ✅ Installed in $INSTALL_DIR/$BINARY"
 echo ""
 
-# Agregar al PATH automáticamente si no está
-add_to_path() {
+# Detectar shell y archivo de configuración correcto
+get_shell_info() {
   local rc_file
+  local source_cmd
+
   if [[ -n "$ZSH_VERSION" ]] || [[ "$SHELL" == */zsh ]]; then
     rc_file="$HOME/.zshrc"
+    source_cmd="source ~/.zshrc"
+  elif [[ -n "$FISH_VERSION" ]] || [[ "$SHELL" == */fish ]]; then
+    rc_file="$HOME/.config/fish/config.fish"
+    source_cmd="source ~/.config/fish/config.fish"
   else
+    # Bash u otros
     rc_file="$HOME/.bashrc"
+    source_cmd="source ~/.bashrc"
   fi
+
+  echo "$rc_file|$source_cmd"
+}
+
+# Agregar al PATH automáticamente si no está
+add_to_path() {
+  local shell_info
+  shell_info=$(get_shell_info)
+  local rc_file="${shell_info%|*}"
+  local source_cmd="${shell_info#*|}"
 
   # Agregar solo si no existe ya en el rc file
   if ! grep -q '.local/bin' "$rc_file" 2>/dev/null; then
+    # Crear directorio si no existe (para fish)
+    mkdir -p "$(dirname "$rc_file")" 2>/dev/null || true
+
     echo '' >> "$rc_file"
     echo '# Added by pcurl installer' >> "$rc_file"
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc_file"
+    if [[ -n "$FISH_VERSION" ]] || [[ "$SHELL" == */fish ]]; then
+      echo 'set -gx PATH "$HOME/.local/bin" $PATH' >> "$rc_file"
+    else
+      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$rc_file"
+    fi
     echo "  ✅ Added ~/.local/bin to $rc_file"
   fi
 
@@ -149,17 +174,38 @@ if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
       add_to_path
+      # Obtener comando source correcto
+      local shell_info
+      shell_info=$(get_shell_info)
+      local source_cmd="${shell_info#*|}"
+      echo ""
+      echo "  ✅ Installed successfully!"
+      echo ""
+      echo "  To use pcurl in this terminal session, run:"
+      echo "    $source_cmd"
+      echo ""
+      echo "  Or open a new terminal. Then try:"
     else
       echo "     Add this to your shell config manually:"
       echo ""
       echo "     export PATH=\"\$HOME/.local/bin:\$PATH\""
+      echo ""
+      echo "  ✅ Installed successfully! Quick examples:"
     fi
   else
     # Modo no-interactivo: agregar automáticamente
     add_to_path
+    local shell_info
+    shell_info=$(get_shell_info)
+    local source_cmd="${shell_info#*|}"
+    echo ""
+    echo "  ✅ Installed successfully!"
+    echo ""
+    echo "  To use pcurl in this terminal session, run:"
+    echo "    $source_cmd"
+    echo ""
+    echo "  Or open a new terminal. Then try:"
   fi
-  echo ""
-  echo "  ✅ Installed successfully! Restart your terminal, then:"
 else
   echo ""
   echo "  ✅ Installed successfully! Quick examples:"
