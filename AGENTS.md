@@ -12,6 +12,9 @@
 - `--version` / `-V` - Show version (also checks for updates)
 - `--doctor` / `--check` - Diagnose installation and PATH
 - `--update` - Update to latest version via install.sh
+- `--body-only` - Show only response body
+- `--headers-only` - Show only headers
+- `--no-color` - Disable colors (also via `NO_COLOR` env)
 
 ## Testing
 
@@ -26,16 +29,17 @@
 
 ## WebSocket Support
 
-- Built-in: `pcurl wss://<url>` or `pcurl ws://<url>`
+- Built-in: `pcurl ws ws://<url>` or `pcurl ws wss://<url>`
 - Also: `pcurl wscat -c wss://<url>`
+- `--verbose` flag shows ping/pong frames
 
 ## Project Structure
 
 - `src/main.rs` - Entry point, CLI dispatch, curl execution
+- `src/cli.rs` - CLI definitions (clap derive structs: Cli, Commands, OutputMode)
 - `src/display.rs` - HTTP response parsing and display (status, headers, body, JSON, XML)
-- `src/help.rs` - Help text and doctor diagnostic
+- `src/help.rs` - Doctor diagnostic
 - `src/version.rs` - Version checking and self-update
-- `src/ws.rs` - WebSocket URL extraction
 - `src/ws_client.rs` - WebSocket client implementation
 - `src/curl_parser.rs` - curl command tokenization and reconstruction
 - `tests/integration_tests.rs` - End-to-end tests
@@ -47,20 +51,21 @@
 
 - `serde_json` - JSON parsing and formatting
 - `colored` - Terminal colors
-- `atty` - Stdin detection (pipe mode)
+- `std::io::IsTerminal` - Stdin detection (pipe mode, std instead of atty)
 - `tokio` + `tokio-tungstenite` + `futures-util` - WebSocket async runtime
 - `url` - URL parsing for WebSocket
 - `openssl` (vendored) - TLS support
 - `ureq` - HTTP client for version checking (GitHub API)
+- `clap` - CLI argument parsing (derive API, features: derive, color, wrap_help)
 
 ## Development Guidelines
 
 - **New HTTP features**: Add to `src/display.rs` in display functions
 - **New WebSocket features**: Add to `src/ws_client.rs`
 - **Curl parsing issues**: Fix in `src/curl_parser.rs`
-- **New CLI flags**: Add match arm in `main()`, update `print_help()`, add function
+- **New CLI flags**: Add field to `Cli` or variant to `Commands` in `src/cli.rs`
 - **Always test**: Add integration tests for new features
-- **Update help**: Modify `print_help()` in `src/help.rs`
+- **Help auto-generated**: Customize via `#[command(...)]` attributes in `src/cli.rs`
 - **Version checking**: Uses `ureq` to query GitHub Releases API (`check_latest_version()` in `src/version.rs`)
 - **Silent update notification**: `check_for_update_notification()` in `src/version.rs` runs on every HTTP request
 
@@ -77,9 +82,9 @@
 3. Update parser logic if needed
 
 ### Add new CLI flag
-1. Add match arm in `main()` function
+1. Add field to `Cli` or variant to `Commands` in `src/cli.rs`
 2. Create handler function (e.g., `print_doctor()` in `src/help.rs`)
-3. Update `print_help()` in `src/help.rs` with new option
+3. Dispatch in `main()` if subcommand or flag
 4. Add integration test if applicable
 
 ### Update version

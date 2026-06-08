@@ -74,9 +74,9 @@ sudo cp target/release/pcurl /usr/local/bin/
 
 ## Usage
 
-### Mode 1 — Argument Mode (recommended)
+### HTTP Mode
 
-`pcurl` executes `curl` for you and prettifies the response:
+**Argument mode** — `pcurl` executes `curl` for you and prettifies the response:
 
 ```bash
 # Simple GET
@@ -90,11 +90,12 @@ pcurl 'curl -X POST https://api.example.com/users \
 # With extra flags
 pcurl 'curl -L -k https://api.internal.com/health'
 pcurl 'curl -u user:password https://api.example.com/private'
+
+# Direct URL (adds -si automatically)
+pcurl https://api.example.com/users/1
 ```
 
-### Mode 2 — Pipe
-
-If you prefer to execute `curl` yourself, use `-si` and pipe:
+**Pipe mode** — execute `curl` yourself and pipe output:
 
 ```bash
 curl -si https://api.example.com/users/1 | pcurl
@@ -103,45 +104,26 @@ curl -si -X DELETE https://api.example.com/users/42 | pcurl
 
 > `-s` silences progress bar, `-i` includes headers in stdout.
 
-### Recommended Aliases
-
-Add this to your `.bashrc` / `.zshrc`:
+**Global flags** (work in any HTTP mode):
 
 ```bash
-# Prettify any curl automatically
-pcurl() { command pcurl "$@"; }
-
-# Or a shorter alias
-alias cget='pcurl curl'
-alias cpost='pcurl curl -X POST'
+pcurl --body-only 'curl https://api.example.com/users/1'   # Only JSON body
+pcurl --headers-only 'curl https://api.example.com/users/1' # Only headers + status
+pcurl --no-color 'curl https://api.example.com/users/1'    # No colors (also respects NO_COLOR env)
 ```
 
 ---
 
-## What it shows
-
-| Element | Description |
-|---|---|
-| **Status** | Code + text, colored: 🟢 2xx · 🟡 3xx · 🔴 4xx/5xx |
-| **Time** | Request milliseconds (argument mode) |
-| **Headers** | Aligned key + value, with key in cyan |
-| **Body JSON** | Indented with colors: strings green, numbers yellow, booleans magenta, null red |
-| **Body XML** | Tree indented with cyan tags |
-| **Body text** | Plain, unmodified |
-
----
-
-## WebSocket
-
-**New! Integrated WebSocket support:**
+### WebSocket Mode
 
 ```bash
-# Connect to WebSocket URL
-pcurl wss://echo.websocket.org
-pcurl ws://localhost:8080/chat
+# Native WebSocket subcommand
+pcurl ws wss://echo.websocket.org
+pcurl ws ws://localhost:8080/chat --verbose
 
-# wscat-style commands also work
+# wscat-compatible alias
 pcurl wscat -c wss://echo.websocket.org
+pcurl wscat -c wss://echo.websocket.org --verbose
 ```
 
 Features:
@@ -150,6 +132,7 @@ Features:
 - **Interactive**: Type messages and press Enter
 - **`/quit` command** to close connection
 - **Connection status** on startup
+- `--verbose` shows ping/pong frames
 
 Example session:
 ```
@@ -164,10 +147,27 @@ Type messages and press Enter. /quit to exit.
 
 > {"type":"ping","timestamp":123456}
 ← {
-     "type": "ping",
-     "timestamp": 123456
-  }
+      "type": "ping",
+      "timestamp": 123456
+   }
 ```
+
+---
+
+## CLI Reference
+
+| Command / Flag | Description |
+|---|---|
+| `pcurl [FLAGS] [curl_command]` | HTTP mode (arg or pipe) |
+| `pcurl ws <url> [--verbose]` | WebSocket native mode |
+| `pcurl wscat -c <url> [--verbose]` | wscat-compatible alias |
+| `--body-only` | Show only response body |
+| `--headers-only` | Show only headers + status |
+| `--no-color` | Disable colors (also via `NO_COLOR` env) |
+| `--doctor` | Diagnose installation and PATH |
+| `--update` | Update to latest version via install.sh |
+| `--version` / `-V` | Show version (checks for updates) |
+| `--help` / `-h` | Show help |
 
 ---
 
@@ -217,7 +217,12 @@ support WebSocket and requires learning its own request format.
 
 ## Contributing
 
-PRs welcome. Code is in three modules:
-- `src/main.rs` — HTTP response parser, rendering, version checking, self-update, doctor diagnostic
+PRs welcome. Code structure:
+
+- `src/main.rs` — Entry point, CLI dispatch (clap), curl execution
+- `src/cli.rs` — CLI definitions (clap derive structs)
 - `src/curl_parser.rs` — curl command tokenization and reconstruction
+- `src/display.rs` — HTTP response parsing and display (status, headers, body, JSON, XML)
 - `src/ws_client.rs` — WebSocket client implementation
+- `src/version.rs` — Version checking and self-update
+- `src/help.rs` — Doctor diagnostic
