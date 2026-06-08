@@ -6,7 +6,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
-pub async fn connect_ws(url_str: &str) {
+pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputMode) {
     // Validar URL
     if let Err(e) = Url::parse(url_str) {
         eprintln!("{} URL inválida: {}", "✗".red().bold(), e);
@@ -41,21 +41,28 @@ pub async fn connect_ws(url_str: &str) {
     let (mut write, mut read) = ws_stream.split();
     let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(100);
 
+    // Clone mode fields for use in spawned tasks
+    let headers_only = mode.headers_only;
+
     // Task para leer mensajes del WebSocket
     let ws_read_task = tokio::spawn(async move {
         while let Some(msg_result) = read.next().await {
             match msg_result {
                 Ok(Message::Text(text)) => {
-                    // Prettificar JSON si es JSON
-                    if let Ok(json) = serde_json::from_str::<Value>(&text) {
-                        println!("{} ", "←".green().bold());
-                        print_json_pretty(&json, 1);
-                    } else {
-                        println!("{} {}", "←".green().bold(), text.green());
+                    if !headers_only {
+                        // Prettificar JSON si es JSON
+                        if let Ok(json) = serde_json::from_str::<Value>(&text) {
+                            println!("{} ", "←".green().bold());
+                            print_json_pretty(&json, 1);
+                        } else {
+                            println!("{} {}", "←".green().bold(), text.green());
+                        }
                     }
                 }
                 Ok(Message::Binary(data)) => {
-                    println!("{} {} bytes", "←".green().bold(), data.len());
+                    if !headers_only {
+                        println!("{} {} bytes", "←".green().bold(), data.len());
+                    }
                 }
                 Ok(Message::Close(close_frame)) => {
                     if let Some(frame) = close_frame {
@@ -66,10 +73,14 @@ pub async fn connect_ws(url_str: &str) {
                     break;
                 }
                 Ok(Message::Ping(data)) => {
-                    println!("{} Ping {} bytes", "←".blue().bold(), data.len());
+                    if verbose {
+                        println!("{} Ping {} bytes", "←".blue().bold(), data.len());
+                    }
                 }
                 Ok(Message::Pong(data)) => {
-                    println!("{} Pong {} bytes", "←".blue().bold(), data.len());
+                    if verbose {
+                        println!("{} Pong {} bytes", "←".blue().bold(), data.len());
+                    }
                 }
                 Ok(Message::Frame(_)) => {
                     // Raw frame, ignore for now
@@ -132,12 +143,14 @@ pub async fn connect_ws(url_str: &str) {
                 break;
             } else {
                 // Mostrar mensaje saliente
-                let msg_text = msg_clone.trim();
-                if let Ok(json) = serde_json::from_str::<Value>(msg_text) {
-                    println!("{} ", "→".cyan().bold());
-                    print_json_pretty(&json, 1);
-                } else {
-                    println!("{} {}", "→".cyan().bold(), msg_text.cyan());
+                if !headers_only {
+                    let msg_text = msg_clone.trim();
+                    if let Ok(json) = serde_json::from_str::<Value>(msg_text) {
+                        println!("{} ", "→".cyan().bold());
+                        print_json_pretty(&json, 1);
+                    } else {
+                        println!("{} {}", "→".cyan().bold(), msg_text.cyan());
+                    }
                 }
             }
         }

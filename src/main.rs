@@ -1,118 +1,89 @@
 use colored::*;
-use std::io::{self, Read};
+use std::io::{self, IsTerminal, Read};
 use std::process::{Command, Stdio};
 use std::time::Instant;
 
+mod cli;
 mod curl_parser;
 mod display;
 mod help;
 mod version;
-mod ws;
 mod ws_client;
 
+use clap::Parser;
+use cli::{Cli, Commands, OutputMode};
 use curl_parser::CurlCommand;
 use display::display_response;
-use help::{print_doctor, print_help};
-use version::{check_for_update_notification, check_latest_version, update_pcurl};
-use ws::extract_ws_url;
+use help::print_doctor;
+use version::{check_for_update_notification, update_pcurl};
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let stdin_has_data = !atty::is(atty::Stream::Stdin);
+    let cli = Cli::parse();
 
-    // ── Modo 1: curl -si ... | pcurl  ──────────────────────────────────
-    if stdin_has_data {
-        let mut input = String::new();
-        io::stdin()
-            .read_to_string(&mut input)
-            .expect("Error leyendo stdin");
-        println!();
-        display_response(&input, 0);
+    // Flags especiales (doctor / update) tienen prioridad
+    if cli.doctor {
+        print_doctor();
+        return;
+    }
+    if cli.update {
+        update_pcurl();
         return;
     }
 
-    // ── Sin argumentos: mostrar ayuda ──────────────────────────────────
-    if args.len() < 2 {
-        print_help();
-        return;
-    }
+    // Check NO_COLOR env var (clap doesn't auto-handle this in derive API)
+    let no_color = cli.no_color || std::env::var("NO_COLOR").is_ok();
 
-    match args[1].as_str() {
-        "--help" | "-h" => {
-            print_help();
-            return;
-        }
-        "--version" | "-V" => {
-            let current = env!("CARGO_PKG_VERSION");
-            println!("{} {}", "pcurl".cyan().bold(), current.white());
-
-            // Check for updates silently
-            if let Ok(latest) = check_latest_version() {
-                if latest != current {
-                    println!(
-                        "  {} New version available: {} → {}",
-                        "⚠️".yellow(),
-                        current,
-                        latest.green()
-                    );
-                    println!(
-                        "  {} Update with: {}",
-                        "→".dimmed(),
-                        "pcurl --update".cyan()
-                    );
-                }
-            }
-            return;
-        }
-        "--doctor" | "--check" => {
-            print_doctor();
-            return;
-        }
-        "--update" => {
-            update_pcurl();
-            return;
-        }
-        flag if flag.starts_with("--") => {
-            eprintln!(
-                "{} {}: Unknown option '{}'",
-                "❌".red().bold(),
-                "Error".red().bold(),
-                flag
-            );
-            eprintln!("{} Use 'pcurl --help' for available options", "➡️".dimmed());
-            std::process::exit(1);
-        }
-        _ => {}
-    }
-
-    // ── Modo WebSocket: URLs directas ──────────────────────────────────
-    let command_str = if args.len() == 2 {
-        args[1].clone()
-    } else {
-        args[1..].join(" ")
+    let output_mode = OutputMode {
+        body_only: cli.body_only,
+        headers_only: cli.headers_only,
+        no_color,
     };
 
-    let trimmed = command_str.trim();
+    // Despacho por subcomando
+    match cli.command {
+        // pcurl ws wss://echo.websocket.org
+        Some(Commands::Ws { url, verbose }) => {
+            run_websocket(&url, verbose, &output_mode);
+        }
 
-    // URL directa de WebSocket
-    if trimmed.starts_with("ws://") || trimmed.starts_with("wss://") {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(ws_client::connect_ws(trimmed));
-        return;
-    }
+        // pcurl wscat -c wss://echo.websocket.org
+        Some(Commands::Wscat { connect, verbose }) => {
+            run_websocket(&connect, verbose, &output_mode);
+        }
 
-    // Comandos tipo wscat -c wss://...
-    if let Some(url) = extract_ws_url(trimmed) {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(ws_client::connect_ws(&url));
-        return;
+        // Sin subcomando → modo HTTP
+        None => {
+            let stdin_has_data = !io::stdin().is_terminal();
+
+            match cli.curl_command {
+                // Modo argumento: pcurl 'curl https://...'
+                Some(cmd) => {
+                    // Detecta si es una URL directa (no empieza con "curl")
+                    let curl_cmd = if cmd.trim_start().starts_with("curl") {
+                        cmd
+                    } else {
+                        format!("curl -si {}", cmd)
+                    };
+                    run_http_argument_mode(&curl_cmd, &output_mode);
+                }
+
+                // Modo pipe: curl -si ... | pcurl
+                None => {
+                    if stdin_has_data {
+                        run_pipe_mode(&output_mode);
+                    } else {
+                        // stdin es un terminal → no hay pipe → mostrar ayuda
+                        eprintln!("pcurl: no se recibió input. Usa `pcurl --help` para ver los modos de uso.");
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
     }
 
     // ── Check for updates (silent notification) ───────────────────────
+    // This now happens only if no other command/flag took precedence
     check_for_update_notification();
-
-    // ── Modo 2: pcurl 'curl ...'  o  pcurl curl ... ───────────────────
-    execute_curl_and_display(&command_str);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +100,8 @@ fn is_safe_url(url: &str) -> bool {
         || url.starts_with("file://")
 }
 
-fn execute_curl_and_display(command_str: &str) {
+// Renamed from execute_curl_and_display
+fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
     let parsed = CurlCommand::parse(command_str);
 
     // Validar URL para prevenir inyección de comandos maliciosos
@@ -201,9 +173,27 @@ fn execute_curl_and_display(command_str: &str) {
             }
 
             let raw = String::from_utf8_lossy(&out.stdout).to_string();
-            display_response(&raw, elapsed);
+            display_response(&raw, elapsed, mode);
         }
     }
+}
+
+fn run_pipe_mode(mode: &OutputMode) {
+    let mut input = String::new();
+    io::stdin()
+        .read_to_string(&mut input)
+        .expect("Error leyendo stdin");
+    println!();
+    display_response(&input, 0, mode);
+}
+
+async fn run_websocket_async(url: &str, verbose: bool, mode: &OutputMode) {
+    ws_client::connect_ws(url, verbose, mode).await;
+}
+
+fn run_websocket(url: &str, verbose: bool, mode: &OutputMode) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(run_websocket_async(url, verbose, mode));
 }
 
 #[cfg(test)]
@@ -222,36 +212,84 @@ mod tests {
     #[test]
     fn test_display_response_json() {
         let json_response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"id\": 1, \"name\": \"test\"}";
-        crate::display::display_response(json_response, 123);
+        crate::display::display_response(
+            json_response,
+            123,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 
     #[test]
     fn test_display_response_xml() {
         let xml_response = "HTTP/1.1 200 OK\r\nContent-Type: application/xml\r\n\r\n<?xml version=\"1.0\"?><root><item>test</item></root>";
-        crate::display::display_response(xml_response, 456);
+        crate::display::display_response(
+            xml_response,
+            456,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 
     #[test]
     fn test_display_response_plain_text() {
         let text_response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello, World!";
-        crate::display::display_response(text_response, 789);
+        crate::display::display_response(
+            text_response,
+            789,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 
     #[test]
     fn test_display_response_no_headers() {
         let body_only = "{\"message\": \"no headers\"}";
-        crate::display::display_response(body_only, 0);
+        crate::display::display_response(
+            body_only,
+            0,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 
     #[test]
     fn test_display_response_empty_body() {
         let empty_response = "HTTP/1.1 204 No Content\r\n\r\n";
-        crate::display::display_response(empty_response, 100);
+        crate::display::display_response(
+            empty_response,
+            100,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 
     #[test]
     fn test_display_response_with_redirects() {
         let redirect_response = "HTTP/1.1 301 Moved Permanently\r\nLocation: /new-url\r\n\r\nHTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"success\": true}";
-        crate::display::display_response(redirect_response, 250);
+        crate::display::display_response(
+            redirect_response,
+            250,
+            &crate::cli::OutputMode {
+                body_only: false,
+                headers_only: false,
+                no_color: false,
+            },
+        );
     }
 }
