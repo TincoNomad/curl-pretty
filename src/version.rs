@@ -38,7 +38,7 @@ pub fn update_pcurl() {
 }
 
 pub fn check_for_update_notification() {
-    let current = env!("CARGO_PKG_VERSION");
+    let current = env!("CARGO_PKG_VERSION"); // Still need this to get current version for comparison
     if let Ok(latest) = check_latest_version() {
         // Normalizar: quitar prefijo 'v' si existe para comparación correcta
         let latest_clean = latest.trim_start_matches('v');
