@@ -1,3 +1,4 @@
+use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -38,11 +39,18 @@ pub fn get_or_create_session(session_id: Option<String>) -> String {
     new_sid
 }
 
-pub fn build_json_rpc_body(method: &str, params: &str) -> String {
-    format!(
-        r#"{{"jsonrpc":"2.0","id":1,"method":"{}","params":{}}}"#,
-        method, params
-    )
+pub fn build_json_rpc_body(method: &str, params: &str) -> Result<String, String> {
+    let params_value: Value =
+        serde_json::from_str(params).map_err(|e| format!("Invalid JSON in params: {}", e))?;
+
+    let body = serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": method,
+        "params": params_value,
+    });
+
+    Ok(body.to_string())
 }
 
 #[cfg(test)]
@@ -51,20 +59,37 @@ mod tests {
 
     #[test]
     fn test_build_json_rpc_body() {
-        let body = build_json_rpc_body("tools/call", r#"{"name":"test"}"#);
+        let body = build_json_rpc_body("tools/call", r#"{"name":"test"}"#).unwrap();
+        // serde_json sorts keys alphabetically by default
         assert_eq!(
             body,
-            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"test"}}"#
+            r#"{"id":1,"jsonrpc":"2.0","method":"tools/call","params":{"name":"test"}}"#
         );
     }
 
     #[test]
     fn test_build_json_rpc_body_empty_params() {
-        let body = build_json_rpc_body("resources/list", "{}");
+        let body = build_json_rpc_body("resources/list", "{}").unwrap();
         assert_eq!(
             body,
-            r#"{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}"#
+            r#"{"id":1,"jsonrpc":"2.0","method":"resources/list","params":{}}"#
         );
+    }
+
+    #[test]
+    fn test_build_json_rpc_body_invalid_params() {
+        let result = build_json_rpc_body("tools/call", "not json");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid JSON"));
+    }
+
+    #[test]
+    fn test_build_json_rpc_body_escapes_method_quotes() {
+        let body = build_json_rpc_body("tools/call", "{\"name\":\"test\"}").unwrap();
+        assert!(!body.contains("undefined"));
+        assert!(body.contains("\"jsonrpc\":\"2.0\""));
+        assert!(body.contains("\"method\":\"tools/call\""));
+        assert!(body.contains("\"params\":{\"name\":\"test\"}"));
     }
 
     #[test]

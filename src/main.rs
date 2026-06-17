@@ -151,7 +151,13 @@ fn run_mcp_mode(
 ) {
     let sid = mcp::get_or_create_session(session_id);
     let full_url = format!("{}?session_id={}", url.trim_end_matches('/'), sid);
-    let body = mcp::build_json_rpc_body(method, params);
+    let body = match mcp::build_json_rpc_body(method, params) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("{} {}", "✗".red().bold(), e);
+            std::process::exit(1);
+        }
+    };
 
     if verbose {
         eprintln!("{} Session: {}", "ℹ".cyan(), sid.dimmed());
@@ -338,10 +344,19 @@ fn execute_curl_and_stream(
 }
 
 fn run_pipe_mode(mode: &OutputMode) {
+    const MAX_INPUT_SIZE: usize = 50 * 1024 * 1024; // 50 MB
+
     let mut input = String::new();
-    io::stdin()
+    let mut reader = io::stdin().take((MAX_INPUT_SIZE + 1) as u64);
+    let bytes_read = reader
         .read_to_string(&mut input)
         .expect("Error reading stdin");
+
+    if bytes_read > MAX_INPUT_SIZE {
+        eprintln!("  {} Input exceeds 50MB limit, truncating", "⚠️".yellow());
+        input.truncate(MAX_INPUT_SIZE);
+    }
+
     println!();
     display_response(&input, 0, mode);
 }
