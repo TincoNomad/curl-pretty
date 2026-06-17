@@ -5,11 +5,11 @@ pub fn print_doctor() {
     use std::env;
 
     println!();
-    println!("  {}  —  Diagnóstico de instalación", "pcurl".cyan().bold());
+    println!("  {}  —  Installation Diagnostic", "pcurl".cyan().bold());
     println!("  {}", "─".repeat(54).dimmed());
     println!();
 
-    // Verificar ubicación del binario
+    // Check binary location
     let current_exe = env::current_exe().ok();
     let install_paths = vec![
         format!("{}/.local/bin/pcurl", env::var("HOME").unwrap_or_default()),
@@ -17,14 +17,14 @@ pub fn print_doctor() {
         "/usr/bin/pcurl".to_string(),
     ];
 
-    println!("  {}", "UBICACIÓN DEL BINARIO".white().bold());
+    println!("  {}", "BINARY LOCATION".white().bold());
     println!();
 
     if let Some(exe_path) = current_exe {
         println!(
             "  {}  {}",
             "✅".green(),
-            format!("Ejecutando desde: {}", exe_path.display()).white()
+            format!("Running from: {}", exe_path.display()).white()
         );
     }
 
@@ -34,7 +34,7 @@ pub fn print_doctor() {
             println!(
                 "  {}  {}",
                 "✅".green(),
-                format!("Encontrado en: {}", path).white()
+                format!("Found at: {}", path).white()
             );
             found_in_path = true;
         }
@@ -44,13 +44,13 @@ pub fn print_doctor() {
         println!(
             "  {}  {}",
             "❌".red(),
-            "No encontrado en ubicaciones estándar".white()
+            "Not found in standard locations".white()
         );
     }
     println!();
 
-    // Verificar PATH
-    println!("  {}", "CONFIGURACIÓN DE PATH".white().bold());
+    // Check PATH
+    println!("  {}", "PATH CONFIGURATION".white().bold());
     println!();
 
     let path = env::var("PATH").unwrap_or_default();
@@ -61,29 +61,29 @@ pub fn print_doctor() {
         println!(
             "  {}  {}",
             "✅".green(),
-            format!("{} está en PATH", local_bin).white()
+            format!("{} is in PATH", local_bin).white()
         );
     } else {
         println!(
             "  {}  {}",
             "⚠️".yellow(),
-            format!("{} NO está en PATH", local_bin).white()
+            format!("{} is NOT in PATH", local_bin).white()
         );
         println!();
-        println!("  {}", "SOLUCIÓN:".yellow().bold());
-        println!("  {}", "Agrega esto a tu ~/.bashrc o ~/.zshrc:".white());
+        println!("  {}", "FIX:".yellow().bold());
+        println!("  {}", "Add this to your ~/.bashrc or ~/.zshrc:".white());
         println!(
             "  {}",
             "export PATH=\"$HOME/.local/bin:$PATH\"".to_string().cyan()
         );
         println!();
-        println!("  {}", "Luego recarga la configuración:".white());
-        println!("  {}", "source ~/.zshrc  # o source ~/.bashrc".cyan());
+        println!("  {}", "Then reload your config:".white());
+        println!("  {}", "source ~/.zshrc  # or source ~/.bashrc".cyan());
     }
     println!();
 
-    // Verificar curl
-    println!("  {}", "DEPENDENCIAS".white().bold());
+    // Check curl
+    println!("  {}", "DEPENDENCIES".white().bold());
     println!();
 
     match Command::new("curl").arg("--version").output() {
@@ -99,13 +99,13 @@ pub fn print_doctor() {
         _ => println!(
             "  {}  {}",
             "❌".red(),
-            "curl: No encontrado (requerido para HTTP mode)".white()
+            "curl: Not found (required for HTTP mode)".white()
         ),
     }
     println!();
 
-    // Test de conectividad
-    println!("  {}", "PRUEBA DE CONECTIVIDAD".white().bold());
+    // Connectivity test
+    println!("  {}", "CONNECTIVITY TEST".white().bold());
     println!();
 
     match Command::new("curl")
@@ -122,7 +122,7 @@ pub fn print_doctor() {
         Ok(output) if output.status.success() => {
             let code = String::from_utf8_lossy(&output.stdout);
             if code.trim() == "200" {
-                println!("  {}  {}", "✅".green(), "Conexión a internet: OK".white());
+                println!("  {}  {}", "✅".green(), "Internet connection: OK".white());
             } else {
                 println!(
                     "  {}  {}",
@@ -134,28 +134,28 @@ pub fn print_doctor() {
         _ => println!(
             "  {}  {}",
             "❌".red(),
-            "No se pudo conectar a internet".white()
+            "Could not connect to the internet".white()
         ),
     }
     println!();
 
-    // Resumen
-    println!("  {}", "RESUMEN".white().bold());
+    // Summary
+    println!("  {}", "SUMMARY".white().bold());
     println!();
     if found_in_path && path.contains(&local_bin) {
         println!(
             "  {}  {}",
             "✅".green(),
-            "Todo está correctamente configurado!".white()
+            "Everything is properly configured!".white()
         );
         println!();
-        println!("  {}", "Prueba con:".dimmed());
+        println!("  {}", "Try running:".dimmed());
         println!("  {}", "pcurl 'curl https://httpbin.org/get'".cyan());
     } else {
         println!(
             "  {}  {}",
             "⚠️".yellow(),
-            "Se encontraron problemas. Revisa las soluciones arriba.".white()
+            "Found some issues. See the fixes above.".white()
         );
     }
     println!();

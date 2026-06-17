@@ -1,5 +1,5 @@
-/// Parsea un comando curl completo y reconstruye los argumentos
-/// inyectando -i (incluir headers) y -s (silencioso) para poder parsear la salida.
+/// Parses a full curl command and reconstructs arguments
+/// injecting -i (include headers) and -s (silent) to allow parsing the output.
 pub struct CurlCommand {
     pub url: String,
     pub method: Option<String>,
@@ -13,7 +13,7 @@ impl CurlCommand {
         let tokens = tokenize(input);
         let mut iter = tokens.iter().peekable();
 
-        // Saltar 'curl' si está presente
+        // Skip 'curl' if present
         if iter.peek().map(|s| s.as_str()) == Some("curl") {
             iter.next();
         }
@@ -26,7 +26,7 @@ impl CurlCommand {
 
         while let Some(token) = iter.next() {
             match token.as_str() {
-                // Método
+                // Method
                 "-X" | "--request" => {
                     if let Some(m) = iter.next() {
                         method = Some(m.clone());
@@ -49,10 +49,10 @@ impl CurlCommand {
                         data = Some(d.clone());
                     }
                 }
-                // Flags que ya añadimos nosotros — ignorar los del usuario
+                // Flags we already inject — ignore user-provided ones
                 "-i" | "--include" | "-s" | "--silent" | "-v" | "--verbose" | "-N"
                 | "--no-buffer" => {}
-                // Flags con valor que pasamos tal cual
+                // Flags with values we pass through
                 "-o" | "--output" | "-u" | "--user" | "--connect-timeout" | "--max-time" | "-m"
                 | "--proxy" | "-x" | "--cacert" | "--cert" | "--key" | "--resolve"
                 | "--dns-servers" | "-A" | "--user-agent" | "--referer" | "-e" => {
@@ -61,7 +61,7 @@ impl CurlCommand {
                         extra_args.push(val.clone());
                     }
                 }
-                // Flags booleanos que pasamos
+                // Boolean flags we pass through
                 "-k" | "--insecure" | "-L" | "--location" | "-g" | "--compressed" | "--http1.0"
                 | "--http1.1" | "--http2" | "--http3" | "-I" | "--head" | "--no-keepalive" => {
                     extra_args.push(token.clone());
@@ -73,10 +73,10 @@ impl CurlCommand {
                     {
                         url = t.to_string();
                     } else if !t.starts_with('-') && url.is_empty() {
-                        // Token sin guion y no hay URL aún → asumir que es la URL
+                        // Token without dash and no URL yet → assume it's the URL
                         url = t.to_string();
                     } else if t.starts_with('-') {
-                        // Flag desconocido: pasarlo
+                        // Unknown flag: pass it through
                         extra_args.push(t.to_string());
                     }
                 }
@@ -92,14 +92,14 @@ impl CurlCommand {
         }
     }
 
-    /// Construye el vector de argumentos para pasar a `curl`,
-    /// inyectando -i, -s y -N para poder parsear la respuesta en streaming.
+    /// Builds the argument vector to pass to `curl`,
+    /// injecting -i, -s and -N to allow streaming response parsing.
     pub fn to_args_with_headers(&self) -> Vec<String> {
         let mut args = Vec::new();
 
-        args.push("-i".to_string()); // incluir headers en stdout
-        args.push("-s".to_string()); // silenciar barra de progreso
-        args.push("-N".to_string()); // sin buffer de salida (necesario para SSE streaming)
+        args.push("-i".to_string()); // include headers in stdout
+        args.push("-s".to_string()); // silence progress bar
+        args.push("-N".to_string()); // no output buffering (needed for SSE streaming)
 
         if let Some(m) = &self.method {
             args.push("-X".to_string());
@@ -115,7 +115,7 @@ impl CurlCommand {
             args.push("-d".to_string());
             args.push(d.clone());
 
-            // Auto-inyectar Content-Type si el body parece JSON y no está definido
+            // Auto-inject Content-Type if body looks like JSON and not already defined
             let has_ct = self
                 .headers
                 .iter()
@@ -135,7 +135,7 @@ impl CurlCommand {
     }
 }
 
-/// Tokenizador simple tipo shell: respeta comillas simples y dobles
+/// Simple shell-like tokenizer: respects single and double quotes
 fn tokenize(input: &str) -> Vec<String> {
     let mut tokens: Vec<String> = Vec::new();
     let mut current = String::new();

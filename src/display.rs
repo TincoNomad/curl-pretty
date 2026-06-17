@@ -2,13 +2,13 @@ use colored::*;
 use serde_json::Value;
 
 pub fn display_response(raw: &str, elapsed_ms: u128, mode: &crate::cli::OutputMode) {
-    // Pipe mode: batch display con split completo (maneja redirects internamente)
+    // Pipe mode: batch display with full split (handles redirects internally)
     let (headers_raw, body) = split_response(raw);
     display_status_and_headers(&headers_raw, elapsed_ms, mode);
     display_body_section(&body, mode);
 }
 
-// Streaming mode: muestra solo status + headers inmediatamente (sin esperar body)
+// Streaming mode: display only status + headers immediately (without waiting for body)
 pub fn display_status_and_headers(
     headers_raw: &str,
     elapsed_ms: u128,
@@ -48,12 +48,12 @@ pub fn display_status_and_headers(
     }
 }
 
-// Streaming mode: muestra el body formateado (JSON, XML o texto plano)
+// Streaming mode: display formatted body (JSON, XML or plain text)
 pub fn display_body_section(body: &str, mode: &crate::cli::OutputMode) {
     let body_trimmed = body.trim();
     if !mode.headers_only {
         if body_trimmed.is_empty() {
-            println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
+            println!("  {}", "(empty response body)".dimmed().italic());
         } else {
             println!("{}", "  BODY".dimmed());
             println!(

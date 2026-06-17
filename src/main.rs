@@ -22,7 +22,7 @@ use version::{check_for_update_notification, update_pcurl};
 fn main() {
     let cli = Cli::parse();
 
-    // Flags especiales (doctor / update) tienen prioridad
+    // Special flags (doctor / update) take priority
     if cli.doctor {
         print_doctor();
         return;
@@ -41,7 +41,7 @@ fn main() {
         no_color,
     };
 
-    // Despacho por subcomando
+    // Dispatch by subcommand
     match cli.command {
         // pcurl ws wss://echo.websocket.org
         Some(Commands::Ws { url, verbose }) => {
@@ -64,14 +64,14 @@ fn main() {
             run_mcp_mode(&url, &method, &params, session_id, verbose, &output_mode);
         }
 
-        // Sin subcomando → modo HTTP
+        // No subcommand → HTTP mode
         None => {
             let stdin_has_data = !io::stdin().is_terminal();
 
             match cli.curl_command {
-                // Modo argumento: pcurl 'curl https://...'
+                // Argument mode: pcurl 'curl https://...'
                 Some(cmd) => {
-                    // Detecta si es una URL directa (no empieza con "curl")
+                    // Detect if it's a direct URL (doesn't start with "curl")
                     let curl_cmd = if cmd.trim_start().starts_with("curl") {
                         cmd
                     } else {
@@ -80,13 +80,15 @@ fn main() {
                     run_http_argument_mode(&curl_cmd, &output_mode);
                 }
 
-                // Modo pipe: curl -si ... | pcurl
+                // Pipe mode: curl -si ... | pcurl
                 None => {
                     if stdin_has_data {
                         run_pipe_mode(&output_mode);
                     } else {
-                        // stdin es un terminal → no hay pipe → mostrar ayuda
-                        eprintln!("pcurl: no se recibió input. Usa `pcurl --help` para ver los modos de uso.");
+                        // stdin is a terminal → no pipe → show help
+                        eprintln!(
+                            "pcurl: no input received. Use `pcurl --help` to see usage modes."
+                        );
                         std::process::exit(1);
                     }
                 }
@@ -103,7 +105,7 @@ fn main() {
 // Execution
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Validar que la URL solo use protocolos seguros o explícitamente permitidos
+// Validate that the URL only uses safe or explicitly allowed protocols
 fn is_safe_url(url: &str) -> bool {
     url.starts_with("http://")
         || url.starts_with("https://")
@@ -197,7 +199,7 @@ fn execute_curl_and_stream(
         .spawn()
     {
         Err(e) => {
-            eprintln!("{} curl no encontrado o error: {}", "✗".red().bold(), e);
+            eprintln!("{} curl not found or error: {}", "✗".red().bold(), e);
             std::process::exit(1);
         }
         Ok(c) => c,
@@ -306,7 +308,7 @@ fn execute_curl_and_stream(
         let body_trimmed = body.trim();
         if !mode.headers_only {
             if body_trimmed.is_empty() {
-                println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
+                println!("  {}", "(empty response body)".dimmed().italic());
             } else {
                 display::display_body_section(body_trimmed, mode);
             }
@@ -318,7 +320,7 @@ fn execute_curl_and_stream(
         let redirect_body = saved_redirect_body.trim();
         if !mode.headers_only {
             if redirect_body.is_empty() {
-                println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
+                println!("  {}", "(empty response body)".dimmed().italic());
             } else {
                 display::display_body_section(redirect_body, mode);
             }
@@ -328,7 +330,7 @@ fn execute_curl_and_stream(
     } else {
         let output = body.trim();
         if output.is_empty() {
-            eprintln!("{} No hubo respuesta. Verifica la URL.", "✗".red().bold());
+            eprintln!("{} No response received. Check the URL.", "✗".red().bold());
         } else {
             display::display_body_section(output, mode);
         }
@@ -339,7 +341,7 @@ fn run_pipe_mode(mode: &OutputMode) {
     let mut input = String::new();
     io::stdin()
         .read_to_string(&mut input)
-        .expect("Error leyendo stdin");
+        .expect("Error reading stdin");
     println!();
     display_response(&input, 0, mode);
 }

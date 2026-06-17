@@ -125,7 +125,7 @@ fn test_integration_empty_response() {
 
     // Should handle empty body gracefully
     assert!(stdout.contains("204 No Content"));
-    assert!(stdout.contains("(respuesta sin cuerpo)"));
+    assert!(stdout.contains("(empty response body)"));
 }
 
 #[test]

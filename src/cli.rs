@@ -1,100 +1,100 @@
 use clap::{Parser, Subcommand};
 
 // ------------------------------------------------------------
-// CLI principal
+// Main CLI
 // ------------------------------------------------------------
 
-/// HTTP pretty-printer para tu terminal.
-/// Ejecuta curl y embellece la respuesta — como Postman, sin salir de la terminal.
+/// HTTP pretty-printer for your terminal.
+/// Runs curl and beautifies the response — like Postman, without leaving your terminal.
 #[derive(Parser, Debug)]
 #[command(
     name = "pcurl",
-    version,                          // toma la versión de Cargo.toml automáticamente
+    version,                          // reads version from Cargo.toml automatically
     author,
     about,
     long_about = None,
-    after_help = "EJEMPLOS:\n  pcurl 'curl https://api.example.com/users/1'\n  pcurl 'curl -X POST https://api.example.com/users -H \"Content-Type: application/json\" -d \\'{}\\'\n  curl -si https://api.example.com/users | pcurl\n  pcurl ws ws://localhost:8080/chat",
+    after_help = "EXAMPLES:\n  pcurl 'curl https://api.example.com/users/1'\n  pcurl 'curl -X POST https://api.example.com/users -H \"Content-Type: application/json\" -d \\'{}\\'\n  curl -si https://api.example.com/users | pcurl\n  pcurl ws ws://localhost:8080/chat\n  pcurl mcp http://localhost:8080/mcp/message tools/call '{\"name\":\"test\"}'",
 )]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
 
-    /// Comando curl completo entre comillas, o URL directa.
-    /// Si se omite, pcurl lee desde stdin (modo pipe).
+    /// Full curl command in quotes, or direct URL.
+    /// If omitted, pcurl reads from stdin (pipe mode).
     pub curl_command: Option<String>,
 
-    /// Muestra solo el body, sin headers ni status
+    /// Show only the body, without headers or status
     #[arg(long, global = true)]
     pub body_only: bool,
 
-    /// Muestra solo los headers, sin body
+    /// Show only the headers, without body
     #[arg(long, global = true)]
     pub headers_only: bool,
 
-    /// Fuerza salida sin colores (útil para pipes o logs)
+    /// Force output without colors (useful for pipes or logs)
     #[arg(long, global = true)]
     pub no_color: bool,
 
-    /// Verifica la instalación y dependencias
+    /// Check installation and dependencies
     #[arg(long)]
     pub doctor: bool,
 
-    /// Actualiza pcurl a la última versión disponible
+    /// Update pcurl to the latest available version
     #[arg(long)]
     pub update: bool,
 }
 
 // ------------------------------------------------------------
-// Subcomandos
+// Subcommands
 // ------------------------------------------------------------
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Conecta a un servidor WebSocket de forma interactiva
+    /// Connect to a WebSocket server interactively
     Ws {
-        /// URL del WebSocket (ws:// o wss://)
+        /// WebSocket URL (ws:// or wss://)
         url: String,
 
-        /// Muestra mensajes de ping/pong
+        /// Show ping/pong messages
         #[arg(long)]
         verbose: bool,
     },
 
-    /// Alias wscat-compatible: pcurl wscat -c <url>
+    /// wscat-compatible alias: pcurl wscat -c <url>
     Wscat {
-        /// URL del WebSocket
+        /// WebSocket URL
         #[arg(short = 'c', long)]
         connect: String,
 
-        /// Muestra mensajes de ping/pong
+        /// Show ping/pong messages
         #[arg(long)]
         verbose: bool,
     },
 
-    /// Construye y ejecuta una llamada MCP (JSON-RPC sobre SSE).
-    /// Evita problemas de globbing de zsh con los parámetros JSON.
+    /// Build and execute an MCP call (JSON-RPC over SSE).
+    /// Avoids zsh globbing issues with JSON parameters.
     Mcp {
-        /// URL del endpoint MCP (ej. http://localhost:8080/mcp/message)
+        /// MCP endpoint URL (e.g. http://localhost:8080/mcp/message)
         url: String,
 
-        /// Método JSON-RPC a invocar (ej. tools/call)
+        /// JSON-RPC method to call (e.g. tools/call)
         method: String,
 
-        /// Parámetros en formato JSON (ej. '{"name":"test"}')
+        /// JSON-formatted parameters (e.g. '{"name":"test"}')
         params: String,
 
-        /// Session ID para reutilizar una sesión existente
+        /// Session ID to reuse an existing session
         #[arg(long)]
         session_id: Option<String>,
 
-        /// Muestra la llamada curl construida internamente
+        /// Show the internally constructed curl command
         #[arg(long)]
         verbose: bool,
     },
 }
 
 // ------------------------------------------------------------
-// Struct auxiliar para opciones de output
+// Helper struct for output options
 // ------------------------------------------------------------
 
 pub struct OutputMode {

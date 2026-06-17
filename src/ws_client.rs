@@ -7,9 +7,9 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
 pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputMode) {
-    // Validar URL
+    // Validate URL
     if let Err(e) = Url::parse(url_str) {
-        eprintln!("{} URL inválida: {}", "✗".red().bold(), e);
+        eprintln!("{} Invalid URL: {}", "✗".red().bold(), e);
         return;
     }
 
@@ -20,7 +20,7 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
     let (ws_stream, response) = match connect_async(url_str).await {
         Ok(result) => result,
         Err(e) => {
-            eprintln!("{} Error conectando: {}", "✗".red().bold(), e);
+            eprintln!("{} Connection error: {}", "✗".red().bold(), e);
             return;
         }
     };
@@ -28,13 +28,13 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
     println!(
         "{} {} ({})",
         "✓".green().bold(),
-        "Conectado!".green(),
+        "Connected!".green(),
         format!("HTTP {}", response.status()).dimmed()
     );
     println!("{}", "─".repeat(64).dimmed());
     println!(
         "{}",
-        "Escribe mensajes y presiona Enter. /quit para salir.".dimmed()
+        "Type messages and press Enter. /quit to exit.".dimmed()
     );
     println!();
 
@@ -66,9 +66,13 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
                 }
                 Ok(Message::Close(close_frame)) => {
                     if let Some(frame) = close_frame {
-                        println!("{} Conexión cerrada: {}", "←".yellow().bold(), frame.reason);
+                        println!(
+                            "{} Connection closed: {}",
+                            "←".yellow().bold(),
+                            frame.reason
+                        );
                     } else {
-                        println!("{} Conexión cerrada", "←".yellow().bold());
+                        println!("{} Connection closed", "←".yellow().bold());
                     }
                     break;
                 }
@@ -109,20 +113,20 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
                     let trimmed = line.trim();
 
                     if trimmed == "/quit" {
-                        println!("{} Cerrando conexión...", "←".yellow().bold());
+                        println!("{} Closing connection...", "←".yellow().bold());
                         let _ = tx.send("/quit".to_string()).await;
                         break;
                     }
 
                     if !trimmed.is_empty() {
                         if let Err(e) = tx.send(trimmed.to_string()).await {
-                            eprintln!("{} Error enviando mensaje: {}", "✗".red().bold(), e);
+                            eprintln!("{} Error sending message: {}", "✗".red().bold(), e);
                             break;
                         }
                     }
                 }
                 Err(e) => {
-                    eprintln!("{} Error leyendo stdin: {}", "✗".red().bold(), e);
+                    eprintln!("{} Error reading stdin: {}", "✗".red().bold(), e);
                     break;
                 }
             }
@@ -139,7 +143,7 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
             }
 
             if let Err(e) = write.send(Message::Text(msg)).await {
-                eprintln!("{} Error enviando a WebSocket: {}", "✗".red().bold(), e);
+                eprintln!("{} Error sending to WebSocket: {}", "✗".red().bold(), e);
                 break;
             } else {
                 // Mostrar mensaje saliente
@@ -164,7 +168,7 @@ pub async fn connect_ws(url_str: &str, verbose: bool, mode: &crate::cli::OutputM
     }
 
     println!();
-    println!("{} Sesión WebSocket finalizada", "✓".green().bold());
+    println!("{} WebSocket session ended", "✓".green().bold());
 }
 
 fn print_json_pretty(value: &Value, depth: usize) {
