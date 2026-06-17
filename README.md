@@ -154,6 +154,29 @@ Type messages and press Enter. /quit to exit.
 
 ---
 
+### MCP Mode (Model Context Protocol)
+
+```bash
+# Basic call (session auto-created)
+pcurl mcp http://localhost:8080/mcp/message tools/call '{"name":"test"}'
+
+# With explicit session
+pcurl mcp --session-id my-session http://localhost:8080/mcp/message resources/list '{}'
+
+# See the constructed curl command
+pcurl mcp --verbose http://localhost:8080/mcp/message tools/call '{"name":"test"}'
+```
+
+Features:
+- **JSON-RPC body** constructed automatically (`jsonrpc`, `id`, `method`, `params`)
+- **Session persistence**: `session_id` saved to `~/.config/pcurl/mcp_session`
+- **SSE streaming**: MCP responses rendered in real-time with `←` prefix
+- **No globbing issues**: JSON params passed as single argument, safe from zsh expansion
+- `--session-id <id>` for explicit session control
+- `--verbose` shows the curl command being executed
+
+---
+
 ## CLI Reference
 
 | Command / Flag | Description |
@@ -161,6 +184,7 @@ Type messages and press Enter. /quit to exit.
 | `pcurl [FLAGS] [curl_command]` | HTTP mode (arg or pipe) |
 | `pcurl ws <url> [--verbose]` | WebSocket native mode |
 | `pcurl wscat -c <url> [--verbose]` | wscat-compatible alias |
+| `pcurl mcp <url> <method> <params> [--session-id <id>] [--verbose]` | MCP JSON-RPC call |
 | `--body-only` | Show only response body |
 | `--headers-only` | Show only headers + status |
 | `--no-color` | Disable colors (also via `NO_COLOR` env) |
@@ -223,6 +247,7 @@ PRs welcome. Code structure:
 - `src/cli.rs` — CLI definitions (clap derive structs)
 - `src/curl_parser.rs` — curl command tokenization and reconstruction
 - `src/display.rs` — HTTP response parsing and display (status, headers, body, JSON, XML)
+- `src/mcp.rs` — MCP session management and JSON-RPC payload construction
 - `src/ws_client.rs` — WebSocket client implementation
 - `src/version.rs` — Version checking and self-update
 - `src/help.rs` — Doctor diagnostic

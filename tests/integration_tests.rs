@@ -265,3 +265,71 @@ fn test_streaming_sse_events_appear_in_realtime() {
 
     server.join().unwrap();
 }
+
+#[test]
+fn test_mcp_subcommand() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    let server = thread::spawn(move || {
+        if let Some(Ok(mut stream)) = listener.incoming().next() {
+            let mut buf = [0; 4096];
+            let n = stream.read(&mut buf).unwrap();
+            let request = String::from_utf8_lossy(&buf[..n]);
+
+            // Validate JSON-RPC body is present
+            assert!(request.contains("jsonrpc"));
+            assert!(request.contains("\"tools/call\""));
+            assert!(request.contains("\"name\":\"test\""));
+            assert!(request.contains("session_id=test-session"));
+
+            thread::sleep(Duration::from_millis(10));
+            let headers = "HTTP/1.1 202 Accepted\r\nContent-Type: text/event-stream\r\n\r\n";
+            stream.write_all(headers.as_bytes()).unwrap();
+            stream.flush().unwrap();
+
+            thread::sleep(Duration::from_millis(30));
+            let event1 = "data: {\"type\": \"connected\", \"session\": \"test\"}\n\n";
+            stream.write_all(event1.as_bytes()).unwrap();
+            stream.flush().unwrap();
+
+            thread::sleep(Duration::from_millis(30));
+            let event2 = "data: {\"type\": \"result\", \"data\": \"ok\"}\n\n";
+            stream.write_all(event2.as_bytes()).unwrap();
+            stream.flush().unwrap();
+        }
+    });
+
+    thread::sleep(Duration::from_millis(50));
+
+    let output = Command::new("./target/debug/pcurl")
+        .args(&[
+            "mcp",
+            "--session-id",
+            "test-session",
+            &format!("http://127.0.0.1:{}/mcp/message", port),
+            "tools/call",
+            r#"{"name":"test"}"#,
+        ])
+        .output()
+        .expect("Failed to run pcurl");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("← {\"type\": \"connected\", \"session\": \"test\"}"),
+        "Event 1 missing"
+    );
+    assert!(
+        stdout.contains("← {\"type\": \"result\", \"data\": \"ok\"}"),
+        "Event 2 missing"
+    );
+    assert!(stdout.contains("202 Accepted"), "Should show 202 status");
+    assert!(
+        stdout.contains("text/event-stream"),
+        "Should show content-type"
+    );
+
+    server.join().unwrap();
+}

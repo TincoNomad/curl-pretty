@@ -8,6 +8,7 @@ mod cli;
 mod curl_parser;
 mod display;
 mod help;
+mod mcp;
 mod version;
 mod ws_client;
 
@@ -50,6 +51,17 @@ fn main() {
         // pcurl wscat -c wss://echo.websocket.org
         Some(Commands::Wscat { connect, verbose }) => {
             run_websocket(&connect, verbose, &output_mode);
+        }
+
+        // pcurl mcp http://localhost:8080/mcp/message tools/call '{"name":"test"}'
+        Some(Commands::Mcp {
+            url,
+            method,
+            params,
+            session_id,
+            verbose,
+        }) => {
+            run_mcp_mode(&url, &method, &params, session_id, verbose, &output_mode);
         }
 
         // Sin subcomando → modo HTTP
@@ -118,24 +130,68 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
         std::process::exit(1);
     }
 
-    println!();
     let method_label = parsed
         .method
         .as_deref()
         .unwrap_or(if parsed.data.is_some() { "POST" } else { "GET" });
+    let curl_args = parsed.to_args_with_headers();
+
+    execute_curl_and_stream(&curl_args, &parsed.url, method_label, mode);
+}
+
+fn run_mcp_mode(
+    url: &str,
+    method: &str,
+    params: &str,
+    session_id: Option<String>,
+    verbose: bool,
+    mode: &OutputMode,
+) {
+    let sid = mcp::get_or_create_session(session_id);
+    let full_url = format!("{}?session_id={}", url.trim_end_matches('/'), sid);
+    let body = mcp::build_json_rpc_body(method, params);
+
+    if verbose {
+        eprintln!("{} Session: {}", "ℹ".cyan(), sid.dimmed());
+        eprintln!("{} POST {}", "ℹ".cyan(), full_url.dimmed());
+        eprintln!("{} {}", "ℹ".cyan(), body.yellow());
+    }
+
+    let args: Vec<String> = vec![
+        "-s".to_string(),
+        "-N".to_string(),
+        "-i".to_string(),
+        "-X".to_string(),
+        "POST".to_string(),
+        "-H".to_string(),
+        "Content-Type: application/json".to_string(),
+        "-d".to_string(),
+        body,
+        full_url,
+    ];
+
+    execute_curl_and_stream(&args, url, "MCP", mode);
+}
+
+fn execute_curl_and_stream(
+    args: &[String],
+    url_display: &str,
+    method_display: &str,
+    mode: &OutputMode,
+) {
+    println!();
     println!(
         "{} {} {}",
-        method_label.cyan().bold(),
+        method_display.cyan().bold(),
         "→".dimmed(),
-        parsed.url.white().bold()
+        url_display.white().bold()
     );
     println!("{}", "─".repeat(64).dimmed());
 
-    let curl_args = parsed.to_args_with_headers();
     let start = Instant::now();
 
     let mut child = match Command::new("curl")
-        .args(&curl_args)
+        .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -150,7 +206,6 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
     let stdout = child.stdout.take().expect("failed to capture stdout");
     let stderr = child.stderr.take().expect("failed to capture stderr");
 
-    // Hilo separado para stderr: filtra la barra de progreso de curl
     let stderr_handle = thread::spawn(move || {
         let reader = BufReader::new(stderr);
         reader
@@ -166,15 +221,12 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
             .collect::<Vec<_>>()
     });
 
-    // Streaming de stdout: lee línea a línea con BufReader
-    // State machine: headers → body, omite bloques 3xx si hay respuesta final (-L)
     let mut reader = BufReader::new(stdout);
     let mut buf = String::new();
 
     let mut body = String::new();
     let mut headers_displayed = false;
 
-    // Redirect tracking: mostrar redirect solo si es la única respuesta (sin -L)
     let mut saved_redirect_headers = String::new();
     let mut saved_redirect_body = String::new();
     let mut has_saved_redirect = false;
@@ -262,7 +314,6 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
             println!();
         }
     } else if has_saved_redirect {
-        // Solo había un redirect (sin -L) — mostrar su respuesta completa
         display::display_status_and_headers(&saved_redirect_headers, elapsed, mode);
         let redirect_body = saved_redirect_body.trim();
         if !mode.headers_only {

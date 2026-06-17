@@ -23,6 +23,8 @@
 - Integration tests: in `tests/integration_tests.rs`
   - Pipe-mode tests spawn binary via `cargo run --bin pcurl --` or `./target/debug/pcurl`
   - Streaming test (`test_streaming_headers_appear_before_body`) uses `TcpListener` local server
+  - SSE test (`test_streaming_sse_events_appear_in_realtime`) uses TcpListener with event delays
+  - MCP test (`test_mcp_subcommand`) uses TcpListener validating JSON-RPC + SSE response
 
 ## Release
 
@@ -43,11 +45,23 @@
 - **No buffering**: `-N` (no-buffer) auto-injected to curl for instant output
 - **Falls back** to normal body display for non-SSE responses
 
+## MCP Support
+
+- Built-in: `pcurl mcp <url> <method> <params>`
+- Constructs JSON-RPC body (`jsonrpc`, `id`, `method`, `params`) automatically
+- Session management: auto-generates and persists `session_id` in `~/.config/pcurl/mcp_session`
+- URL appends `?session_id=<sid>` automatically
+- Reuses streaming + SSE infrastructure for real-time responses
+- `--session-id` flag for explicit session control
+- `--verbose` shows the constructed curl command and session info
+
 ## Project Structure
 
 - `src/main.rs` - Entry point, CLI dispatch, curl execution with **streaming** (`.spawn()` + `BufReader`)
   - `run_http_argument_mode()` - spawns curl, streams headers then body line-by-line
   - `run_pipe_mode()` - batch reads stdin, uses `display_response()`
+  - `run_mcp_mode()` - builds JSON-RPC and delegates to `execute_curl_and_stream()`
+  - `execute_curl_and_stream()` - core streaming loop (used by HTTP + MCP modes)
 - `src/cli.rs` - CLI definitions (clap derive structs: Cli, Commands, OutputMode)
 - `src/display.rs` - HTTP response parsing and display (status, headers, body, JSON, XML)
   - `display_response()` - batch display (pipe mode)
@@ -57,6 +71,7 @@
   - `display_body()` - body formatter (JSON pretty-print, XML indent, plain text)
   - `is_sse_content_type()` - detect SSE from headers
   - `display_sse_line()` - display a single SSE event line
+- `src/mcp.rs` - MCP session management and JSON-RPC payload construction
 - `src/help.rs` - Doctor diagnostic
 - `src/version.rs` - Version checking and self-update
 - `src/ws_client.rs` - WebSocket client implementation
@@ -90,7 +105,7 @@
 
 ### Streaming architecture
 
-- `run_http_argument_mode()` uses `.spawn()` + `BufReader<stdout>` with line-by-line reading
+- `run_http_argument_mode()` and `run_mcp_mode()` both use `execute_curl_and_stream()` with `.spawn()` + `BufReader<stdout>`
 - State machine: reads lines, detects HTTP/ status lines, accumulates header blocks
 - Redirect blocks (3xx) are saved and only displayed if no final response follows (no `-L`)
 - Final response headers are displayed immediately via `display_status_and_headers()`
@@ -114,6 +129,12 @@
 1. Check tokenization in `curl_parser.rs`
 2. Test with problematic command
 3. Update parser logic if needed
+
+### Modify MCP behavior
+1. Session management: edit `get_or_create_session()` in `src/mcp.rs`
+2. JSON-RPC construction: edit `build_json_rpc_body()` in `src/mcp.rs`
+3. Dispatch: edit `run_mcp_mode()` in `src/main.rs`
+4. Add integration test in `tests/integration_tests.rs`
 
 ### Add new CLI flag
 1. Add field to `Cli` or variant to `Commands` in `src/cli.rs`

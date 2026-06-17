@@ -70,6 +70,27 @@ pub enum Commands {
         #[arg(long)]
         verbose: bool,
     },
+
+    /// Construye y ejecuta una llamada MCP (JSON-RPC sobre SSE).
+    /// Evita problemas de globbing de zsh con los parámetros JSON.
+    Mcp {
+        /// URL del endpoint MCP (ej. http://localhost:8080/mcp/message)
+        url: String,
+
+        /// Método JSON-RPC a invocar (ej. tools/call)
+        method: String,
+
+        /// Parámetros en formato JSON (ej. '{"name":"test"}')
+        params: String,
+
+        /// Session ID para reutilizar una sesión existente
+        #[arg(long)]
+        session_id: Option<String>,
+
+        /// Muestra la llamada curl construida internamente
+        #[arg(long)]
+        verbose: bool,
+    },
 }
 
 // ------------------------------------------------------------
