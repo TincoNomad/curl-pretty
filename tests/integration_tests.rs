@@ -1,5 +1,8 @@
-use std::io::Write;
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::process::{Command, Stdio};
+use std::thread;
+use std::time::Duration;
 
 fn create_temp_input(response: &str) -> std::process::Child {
     let mut child = Command::new("cat")
@@ -144,4 +147,121 @@ fn test_integration_redirect_response() {
     assert!(stdout.contains("200 OK"));
     assert!(stdout.contains("\"success\":"));
     assert!(stdout.contains("\"redirected\":"));
+}
+
+#[test]
+fn test_streaming_headers_appear_before_body() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    let server = thread::spawn(move || {
+        if let Some(Ok(mut stream)) = listener.incoming().next() {
+            let mut buf = [0; 4096];
+            let _ = stream.read(&mut buf);
+            thread::sleep(Duration::from_millis(10));
+            let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 27\r\n\r\n{\"status\": \"ok\", \"key\": 42}";
+            stream.write_all(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
+        }
+    });
+
+    thread::sleep(Duration::from_millis(50));
+
+    let output = Command::new("./target/debug/pcurl")
+        .arg(format!("curl http://127.0.0.1:{}/test", port))
+        .output()
+        .expect("Failed to run pcurl");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let status_pos = stdout.find("200 OK").expect("Should contain 200 OK");
+    let body_pos = stdout.find("BODY").expect("Should contain BODY label");
+    assert!(
+        status_pos < body_pos,
+        "Headers (200 OK at {}) must appear before BODY section (at {})",
+        status_pos,
+        body_pos
+    );
+
+    assert!(stdout.contains("\"status\":"));
+    assert!(stdout.contains("\"key\":"));
+    assert!(stdout.contains("Content-Type"));
+
+    server.join().unwrap();
+}
+
+#[test]
+fn test_streaming_sse_events_appear_in_realtime() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    let server = thread::spawn(move || {
+        if let Some(Ok(mut stream)) = listener.incoming().next() {
+            let mut buf = [0; 4096];
+            let _ = stream.read(&mut buf);
+
+            let headers = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\n\r\n";
+            stream.write_all(headers.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            thread::sleep(Duration::from_millis(50));
+
+            let event1 = "data: {\"event\": \"connected\"}\n\n";
+            stream.write_all(event1.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            thread::sleep(Duration::from_millis(80));
+
+            let event2 = "data: {\"event\": \"message\", \"text\": \"hello\"}\n\n";
+            stream.write_all(event2.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            thread::sleep(Duration::from_millis(80));
+
+            let event3 = "data: {\"event\": \"close\"}\n\n";
+            stream.write_all(event3.as_bytes()).unwrap();
+            stream.flush().unwrap();
+        }
+    });
+
+    thread::sleep(Duration::from_millis(50));
+
+    let output = Command::new("./target/debug/pcurl")
+        .arg(format!("curl http://127.0.0.1:{}/sse-test", port))
+        .output()
+        .expect("Failed to run pcurl");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    // Should NOT contain "BODY" label (SSE mode shows events inline)
+    assert!(
+        !stdout.contains("BODY"),
+        "SSE mode should not show BODY label"
+    );
+
+    // All 3 SSE events should appear with ← prefix
+    assert!(
+        stdout.contains("← {\"event\": \"connected\"}"),
+        "Event 1 missing"
+    );
+    assert!(
+        stdout.contains("← {\"event\": \"message\", \"text\": \"hello\"}"),
+        "Event 2 missing"
+    );
+    assert!(
+        stdout.contains("← {\"event\": \"close\"}"),
+        "Event 3 missing"
+    );
+
+    // Events should appear in order
+    let pos1 = stdout.find("connected").unwrap();
+    let pos2 = stdout.find("message").unwrap();
+    let pos3 = stdout.find("close").unwrap();
+    assert!(pos1 < pos2, "Events out of order: event1 before event2");
+    assert!(pos2 < pos3, "Events out of order: event2 before event3");
+
+    // Should still have headers (status + content-type)
+    assert!(stdout.contains("200 OK"));
+    assert!(stdout.contains("text/event-stream"));
+
+    server.join().unwrap();
 }

@@ -18,8 +18,11 @@
 
 ## Testing
 
-- `cargo test` - runs integration tests
-- Tests are in `tests/integration_tests.rs` and spawn actual binary via `cargo run --bin pcurl --`
+- `cargo test` - runs unit + integration tests
+- Unit tests: in `src/main.rs` (`#[cfg(test)]`) and `src/curl_parser.rs` (`#[cfg(test)]`)
+- Integration tests: in `tests/integration_tests.rs`
+  - Pipe-mode tests spawn binary via `cargo run --bin pcurl --` or `./target/debug/pcurl`
+  - Streaming test (`test_streaming_headers_appear_before_body`) uses `TcpListener` local server
 
 ## Release
 
@@ -33,16 +36,32 @@
 - Also: `pcurl wscat -c wss://<url>`
 - `--verbose` flag shows ping/pong frames
 
+## SSE / Event Streaming
+
+- **Auto-detection**: `Content-Type: text/event-stream` detected in response headers
+- **Real-time display**: Each `data:` line printed immediately with `←` prefix
+- **No buffering**: `-N` (no-buffer) auto-injected to curl for instant output
+- **Falls back** to normal body display for non-SSE responses
+
 ## Project Structure
 
-- `src/main.rs` - Entry point, CLI dispatch, curl execution
+- `src/main.rs` - Entry point, CLI dispatch, curl execution with **streaming** (`.spawn()` + `BufReader`)
+  - `run_http_argument_mode()` - spawns curl, streams headers then body line-by-line
+  - `run_pipe_mode()` - batch reads stdin, uses `display_response()`
 - `src/cli.rs` - CLI definitions (clap derive structs: Cli, Commands, OutputMode)
 - `src/display.rs` - HTTP response parsing and display (status, headers, body, JSON, XML)
+  - `display_response()` - batch display (pipe mode)
+  - `display_status_and_headers()` - streaming display of headers only
+  - `display_body_section()` - streaming display of body only
+  - `parse_status_code()` - extract HTTP status code from status line
+  - `display_body()` - body formatter (JSON pretty-print, XML indent, plain text)
+  - `is_sse_content_type()` - detect SSE from headers
+  - `display_sse_line()` - display a single SSE event line
 - `src/help.rs` - Doctor diagnostic
 - `src/version.rs` - Version checking and self-update
 - `src/ws_client.rs` - WebSocket client implementation
 - `src/curl_parser.rs` - curl command tokenization and reconstruction
-- `tests/integration_tests.rs` - End-to-end tests
+- `tests/integration_tests.rs` - End-to-end tests (pipe mode + streaming via TcpListener)
 - `install.sh` - Universal installer script
 - `.github/workflows/release.yml` - Multi-platform builds and releases
 - `.github/workflows/quality_checks.yml` - CI: fmt, clippy, test, build on push/PR
@@ -69,12 +88,27 @@
 - **Version checking**: Uses `ureq` to query GitHub Releases API (`check_latest_version()` in `src/version.rs`)
 - **Silent update notification**: `check_for_update_notification()` in `src/version.rs` runs on every HTTP request
 
+### Streaming architecture
+
+- `run_http_argument_mode()` uses `.spawn()` + `BufReader<stdout>` with line-by-line reading
+- State machine: reads lines, detects HTTP/ status lines, accumulates header blocks
+- Redirect blocks (3xx) are saved and only displayed if no final response follows (no `-L`)
+- Final response headers are displayed immediately via `display_status_and_headers()`
+- Remaining lines are collected as body and displayed via `display_body_section()`
+- If Content-Type is `text/event-stream`, body lines are displayed inline via `display_sse_line()`
+- Stderr is collected in a separate thread and filtered for real errors only
+
 ## Common Tasks
 
 ### Add new output format
 1. Add detection in `display_body()` function in `src/display.rs`
 2. Create formatting function (e.g., `print_yaml()`)
 3. Add integration test in `tests/integration_tests.rs`
+
+### Add SSE support for new content types
+1. Edit `is_sse_content_type()` in `src/display.rs` to detect the new content type
+2. SSE display happens in `display_sse_line()` — same function handles all SSE
+3. Detection is called in `main.rs` right after the final response headers are found
 
 ### Fix curl parsing
 1. Check tokenization in `curl_parser.rs`
@@ -86,6 +120,13 @@
 2. Create handler function (e.g., `print_doctor()` in `src/help.rs`)
 3. Dispatch in `main()` if subcommand or flag
 4. Add integration test if applicable
+
+### Modify streaming behavior
+1. Edit the state machine in `run_http_argument_mode()` in `src/main.rs`
+2. Header detection happens in the main loop (looks for `HTTP/` prefix + empty line)
+3. Body display calls `display_body_section()` in `src/display.rs`
+4. Redirect handling: saved via `saved_redirect_headers`/`saved_redirect_body`, displayed only if no final response follows
+5. SSE auto-detection: set `is_sse = true` when Content-Type is `text/event-stream`; body lines bypass collection and call `display_sse_line()` directly
 
 ### Update version
 1. Change version in `Cargo.toml`

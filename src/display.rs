@@ -2,45 +2,28 @@ use colored::*;
 use serde_json::Value;
 
 pub fn display_response(raw: &str, elapsed_ms: u128, mode: &crate::cli::OutputMode) {
-    // curl -i puede devolver múltiples bloques header (por redirects).
-    // Dividimos en todos los bloques y tomamos el último par headers/body.
-    let separator = if raw.contains("\r\n\r\n") {
-        "\r\n\r\n"
-    } else {
-        "\n\n"
-    };
+    // Pipe mode: batch display con split completo (maneja redirects internamente)
+    let (headers_raw, body) = split_response(raw);
+    display_status_and_headers(&headers_raw, elapsed_ms, mode);
+    display_body_section(&body, mode);
+}
 
-    // Puede haber múltiples bloques si hay redirects; quedarnos con el último
-    let blocks: Vec<&str> = raw.split(separator).collect();
-
-    // El último bloque es el body; el penúltimo son los headers finales
-    let (headers_raw, body) = if blocks.len() >= 2 {
-        // Buscar el último bloque de headers (el que tiene un status HTTP)
-        let mut last_header_idx = 0;
-        for (i, block) in blocks.iter().enumerate() {
-            if block.trim_start().starts_with("HTTP/") {
-                last_header_idx = i;
-            }
-        }
-        let headers = blocks[last_header_idx];
-        let body = blocks[last_header_idx + 1..].join(separator);
-        (headers, body)
-    } else {
-        ("", raw.to_string())
-    };
-
+// Streaming mode: muestra solo status + headers inmediatamente (sin esperar body)
+pub fn display_status_and_headers(
+    headers_raw: &str,
+    elapsed_ms: u128,
+    mode: &crate::cli::OutputMode,
+) {
     let header_lines: Vec<&str> = headers_raw.lines().collect();
     let status_line = header_lines.first().copied().unwrap_or("").trim();
     let status_code = parse_status_code(status_line);
 
-    // ── Status ──────────────────────────────────────────────────────────
     if !mode.body_only {
         println!();
         display_status(status_line, status_code, elapsed_ms, mode);
         println!();
     }
 
-    // ── Headers ─────────────────────────────────────────────────────────
     let real_headers: Vec<&str> = header_lines
         .iter()
         .skip(1)
@@ -63,8 +46,10 @@ pub fn display_response(raw: &str, elapsed_ms: u128, mode: &crate::cli::OutputMo
         }
         println!();
     }
+}
 
-    // ── Body ────────────────────────────────────────────────────────────
+// Streaming mode: muestra el body formateado (JSON, XML o texto plano)
+pub fn display_body_section(body: &str, mode: &crate::cli::OutputMode) {
     let body_trimmed = body.trim();
     if !mode.headers_only {
         if body_trimmed.is_empty() {
@@ -81,6 +66,30 @@ pub fn display_response(raw: &str, elapsed_ms: u128, mode: &crate::cli::OutputMo
 
     if !mode.body_only {
         println!();
+    }
+}
+
+fn split_response(raw: &str) -> (String, String) {
+    let separator = if raw.contains("\r\n\r\n") {
+        "\r\n\r\n"
+    } else {
+        "\n\n"
+    };
+
+    let blocks: Vec<&str> = raw.split(separator).collect();
+
+    if blocks.len() >= 2 {
+        let mut last_header_idx = 0;
+        for (i, block) in blocks.iter().enumerate() {
+            if block.trim_start().starts_with("HTTP/") {
+                last_header_idx = i;
+            }
+        }
+        let headers = blocks[last_header_idx];
+        let body = blocks[last_header_idx + 1..].join(separator);
+        (headers.to_string(), body)
+    } else {
+        (String::new(), raw.to_string())
     }
 }
 
@@ -309,5 +318,29 @@ fn print_xml(xml: &str, mode: &crate::cli::OutputMode) {
                 }
             }
         }
+    }
+}
+
+pub fn is_sse_content_type(headers_raw: &str) -> bool {
+    headers_raw.lines().any(|line| {
+        let lower = line.to_lowercase();
+        lower.starts_with("content-type:") && lower.contains("text/event-stream")
+    })
+}
+
+pub fn display_sse_line(line: &str, mode: &crate::cli::OutputMode) {
+    let trimmed = line.trim_end_matches(&['\r', '\n'][..]);
+
+    if let Some(content) = trimmed.strip_prefix("data:") {
+        let content = content.trim();
+        if !content.is_empty() {
+            if mode.no_color {
+                println!("  ← {}", content);
+            } else {
+                println!("  {} {}", "←".green().bold(), content.white());
+            }
+        }
+    } else if trimmed.is_empty() {
+        println!();
     }
 }

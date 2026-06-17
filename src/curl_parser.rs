@@ -50,7 +50,8 @@ impl CurlCommand {
                     }
                 }
                 // Flags que ya añadimos nosotros — ignorar los del usuario
-                "-i" | "--include" | "-s" | "--silent" | "-v" | "--verbose" => {}
+                "-i" | "--include" | "-s" | "--silent" | "-v" | "--verbose" | "-N"
+                | "--no-buffer" => {}
                 // Flags con valor que pasamos tal cual
                 "-o" | "--output" | "-u" | "--user" | "--connect-timeout" | "--max-time" | "-m"
                 | "--proxy" | "-x" | "--cacert" | "--cert" | "--key" | "--resolve"
@@ -92,12 +93,13 @@ impl CurlCommand {
     }
 
     /// Construye el vector de argumentos para pasar a `curl`,
-    /// inyectando -i y -s para poder parsear la respuesta.
+    /// inyectando -i, -s y -N para poder parsear la respuesta en streaming.
     pub fn to_args_with_headers(&self) -> Vec<String> {
         let mut args = Vec::new();
 
         args.push("-i".to_string()); // incluir headers en stdout
         args.push("-s".to_string()); // silenciar barra de progreso
+        args.push("-N".to_string()); // sin buffer de salida (necesario para SSE streaming)
 
         if let Some(m) = &self.method {
             args.push("-X".to_string());

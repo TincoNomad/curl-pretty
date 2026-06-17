@@ -1,6 +1,7 @@
 use colored::*;
-use std::io::{self, IsTerminal, Read};
+use std::io::{self, BufRead, BufReader, IsTerminal, Read};
 use std::process::{Command, Stdio};
+use std::thread;
 use std::time::Instant;
 
 mod cli;
@@ -100,11 +101,9 @@ fn is_safe_url(url: &str) -> bool {
         || url.starts_with("file://")
 }
 
-// Renamed from execute_curl_and_display
 fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
     let parsed = CurlCommand::parse(command_str);
 
-    // Validar URL para prevenir inyección de comandos maliciosos
     if !parsed.url.is_empty() && !is_safe_url(&parsed.url) {
         eprintln!(
             "{} {}: URL protocol not allowed: {}",
@@ -135,45 +134,152 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
     let curl_args = parsed.to_args_with_headers();
     let start = Instant::now();
 
-    let output = Command::new("curl")
+    let mut child = match Command::new("curl")
         .args(&curl_args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output();
-
-    let elapsed = start.elapsed().as_millis();
-
-    match output {
+        .spawn()
+    {
         Err(e) => {
             eprintln!("{} curl no encontrado o error: {}", "✗".red().bold(), e);
             std::process::exit(1);
         }
-        Ok(out) => {
-            // Mostrar stderr filtrado (errores reales, no progreso)
-            if !out.stderr.is_empty() {
-                let err = String::from_utf8_lossy(&out.stderr);
-                let real_errors: Vec<&str> = err
-                    .lines()
-                    .filter(|l| {
-                        let t = l.trim();
-                        !t.is_empty()
-                            && !t.contains("% Total")
-                            && !t.contains("Dload")
-                            && !t.starts_with(' ')
-                    })
-                    .collect();
-                if !real_errors.is_empty() {
-                    eprintln!("{}", real_errors.join("\n").yellow());
+        Ok(c) => c,
+    };
+
+    let stdout = child.stdout.take().expect("failed to capture stdout");
+    let stderr = child.stderr.take().expect("failed to capture stderr");
+
+    // Hilo separado para stderr: filtra la barra de progreso de curl
+    let stderr_handle = thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        reader
+            .lines()
+            .map_while(Result::ok)
+            .filter(|line| {
+                let t = line.trim();
+                !t.is_empty()
+                    && !t.contains("% Total")
+                    && !t.contains("Dload")
+                    && !t.starts_with(' ')
+            })
+            .collect::<Vec<_>>()
+    });
+
+    // Streaming de stdout: lee línea a línea con BufReader
+    // State machine: headers → body, omite bloques 3xx si hay respuesta final (-L)
+    let mut reader = BufReader::new(stdout);
+    let mut buf = String::new();
+
+    let mut body = String::new();
+    let mut headers_displayed = false;
+
+    // Redirect tracking: mostrar redirect solo si es la única respuesta (sin -L)
+    let mut saved_redirect_headers = String::new();
+    let mut saved_redirect_body = String::new();
+    let mut has_saved_redirect = false;
+
+    let mut block = String::new();
+    let mut status: u16 = 0;
+    let mut is_sse = false;
+
+    loop {
+        buf.clear();
+        match reader.read_line(&mut buf) {
+            Ok(0) => break,
+            Err(_) => break,
+            Ok(_) => {}
+        }
+
+        let line = buf.trim_end_matches(&['\r', '\n'][..]);
+
+        if headers_displayed {
+            if is_sse {
+                if !mode.headers_only {
+                    display::display_sse_line(&buf, mode);
+                }
+            } else {
+                body.push_str(&buf);
+            }
+            continue;
+        }
+
+        if line.is_empty() {
+            if status > 0 {
+                if !(300..400).contains(&status) {
+                    display::display_status_and_headers(&block, start.elapsed().as_millis(), mode);
+                    is_sse = display::is_sse_content_type(&block);
+                    headers_displayed = true;
+                    has_saved_redirect = false;
+                    saved_redirect_headers.clear();
+                    saved_redirect_body.clear();
+                } else {
+                    has_saved_redirect = true;
+                    saved_redirect_headers = block.clone();
+                    saved_redirect_body.clear();
                 }
             }
-
-            if out.stdout.is_empty() {
-                eprintln!("{} No hubo respuesta. Verifica la URL.", "✗".red().bold());
-                return;
+            block.clear();
+            status = 0;
+        } else if line.starts_with("HTTP/") {
+            if has_saved_redirect {
+                has_saved_redirect = false;
+                saved_redirect_headers.clear();
+                saved_redirect_body.clear();
             }
+            status = display::parse_status_code(line);
+            block = line.to_string();
+        } else if status > 0 {
+            block.push('\n');
+            block.push_str(line);
+        } else if has_saved_redirect {
+            saved_redirect_body.push_str(&buf);
+        }
+    }
 
-            let raw = String::from_utf8_lossy(&out.stdout).to_string();
-            display_response(&raw, elapsed, mode);
+    let elapsed = start.elapsed().as_millis();
+    let _ = child.wait();
+
+    if let Ok(errors) = stderr_handle.join() {
+        if !errors.is_empty() {
+            eprintln!("{}", errors.join("\n").yellow());
+        }
+    }
+
+    if headers_displayed && is_sse {
+        if !mode.body_only {
+            println!();
+        }
+    } else if headers_displayed {
+        let body_trimmed = body.trim();
+        if !mode.headers_only {
+            if body_trimmed.is_empty() {
+                println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
+            } else {
+                display::display_body_section(body_trimmed, mode);
+            }
+        } else if !mode.body_only {
+            println!();
+        }
+    } else if has_saved_redirect {
+        // Solo había un redirect (sin -L) — mostrar su respuesta completa
+        display::display_status_and_headers(&saved_redirect_headers, elapsed, mode);
+        let redirect_body = saved_redirect_body.trim();
+        if !mode.headers_only {
+            if redirect_body.is_empty() {
+                println!("  {}", "(respuesta sin cuerpo)".dimmed().italic());
+            } else {
+                display::display_body_section(redirect_body, mode);
+            }
+        } else if !mode.body_only {
+            println!();
+        }
+    } else {
+        let output = body.trim();
+        if output.is_empty() {
+            eprintln!("{} No hubo respuesta. Verifica la URL.", "✗".red().bold());
+        } else {
+            display::display_body_section(output, mode);
         }
     }
 }
