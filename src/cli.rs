@@ -72,7 +72,8 @@ pub enum Commands {
     },
 
     /// Build and execute an MCP call (JSON-RPC over SSE).
-    /// Avoids zsh globbing issues with JSON parameters.
+    /// Connects to /mcp/sse, gets session_id, sends initialize, then your method.
+    /// Use --session-id to skip SSE and POST directly.
     Mcp {
         /// MCP endpoint URL (e.g. http://localhost:8080/mcp/message)
         url: String,

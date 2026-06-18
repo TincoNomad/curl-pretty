@@ -48,12 +48,23 @@
 ## MCP Support
 
 - Built-in: `pcurl mcp <url> <method> <params>`
-- Constructs JSON-RPC body (`jsonrpc`, `id`, `method`, `params`) automatically
-- Session management: auto-generates and persists `session_id` in `~/.config/pcurl/mcp_session`
-- URL appends `?session_id=<sid>` automatically
-- Reuses streaming + SSE infrastructure for real-time responses
-- `--session-id` flag for explicit session control
-- `--verbose` shows the constructed curl command and session info
+- **Full protocol cycle**: connects to `/mcp/sse`, obtains `session_id` from the `endpoint` event, sends `initialize`, then sends the user's method
+- SSE connection kept open via `curl -N` subprocess, read in a background thread via `mpsc` channel
+- POST requests sent via `ureq` (synchronous, no tokio needed)
+- JSON-RPC body constructed with `serde_json::json!()` macro (auto-escaping, no injection)
+- Responses matched to requests by JSON-RPC `id` field
+- `--session-id` flag skips SSE and uses direct POST (old flow)
+- `--verbose` shows SSE events, session info, and server handshake
+- Falls back gracefully: if SSE fails, reports error and exits (no silent fallback)
+
+### Architecture
+
+- `src/mcp_client.rs` — `McpClient` struct: `.connect(message_url, verbose)` → `.send_request(method, params)` → `.close()`
+  - SSE reader thread sends parsed `SseEvent` (type + data) through `mpsc::channel`
+  - `send_request()` POSTs via `ureq`, then blocks on channel until response with matching `id` arrives
+  - Timeout: 10s for initial `session_id`, 30s for response  
+- `src/mcp.rs` — legacy helpers: `build_json_rpc_body()`, `get_or_create_session()` (used by direct fallback only)
+- `src/main.rs` — `run_mcp_mode()` dispatches to `run_mcp_sse()` (new) or `run_mcp_direct()` (old, with `--session-id`)
 
 ## Project Structure
 
@@ -71,7 +82,8 @@
   - `display_body()` - body formatter (JSON pretty-print, XML indent, plain text)
   - `is_sse_content_type()` - detect SSE from headers
   - `display_sse_line()` - display a single SSE event line
-- `src/mcp.rs` - MCP session management and JSON-RPC payload construction
+- `src/mcp.rs` - MCP legacy helpers (JSON-RPC body, session persistence)
+- `src/mcp_client.rs` - MCP client: SSE connection, JSON-RPC over SSE/ureq
 - `src/help.rs` - Doctor diagnostic
 - `src/version.rs` - Version checking and self-update
 - `src/ws_client.rs` - WebSocket client implementation

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
@@ -39,18 +41,22 @@ pub fn get_or_create_session(session_id: Option<String>) -> String {
     new_sid
 }
 
-pub fn build_json_rpc_body(method: &str, params: &str) -> Result<String, String> {
+pub fn build_json_rpc_body(method: &str, params_raw: &str) -> Result<String, String> {
     let params_value: Value =
-        serde_json::from_str(params).map_err(|e| format!("Invalid JSON in params: {}", e))?;
+        serde_json::from_str(params_raw).map_err(|e| format!("Invalid JSON in params: {}", e))?;
 
+    Ok(build_json_rpc_body_value(method, &params_value))
+}
+
+pub fn build_json_rpc_body_value(method: &str, params: &Value) -> String {
     let body = serde_json::json!({
         "jsonrpc": "2.0",
         "id": 1,
         "method": method,
-        "params": params_value,
+        "params": params,
     });
 
-    Ok(body.to_string())
+    body.to_string()
 }
 
 #[cfg(test)]

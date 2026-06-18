@@ -339,6 +339,21 @@ pub fn display_sse_line(line: &str, mode: &crate::cli::OutputMode) {
             } else {
                 println!("  {} {}", "←".green().bold(), content.white());
             }
+
+            if let Some(pos) = content.find("session_id=") {
+                let sid = content[pos + 11..]
+                    .split(|c: char| c.is_whitespace() || c == '&' || c == '\n')
+                    .next()
+                    .unwrap_or("");
+                if !sid.is_empty() {
+                    if mode.no_color {
+                        println!("  Session ID: {}", sid);
+                    } else {
+                        println!("  {} {}", "🔑".yellow(), "Session ID:".white().bold());
+                        println!("  {}", sid.cyan().bold());
+                    }
+                }
+            }
         }
     } else if trimmed.is_empty() {
         println!();

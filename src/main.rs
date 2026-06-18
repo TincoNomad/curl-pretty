@@ -1,4 +1,5 @@
 use colored::*;
+use serde_json::Value;
 use std::io::{self, BufRead, BufReader, IsTerminal, Read};
 use std::process::{Command, Stdio};
 use std::thread;
@@ -9,6 +10,7 @@ mod curl_parser;
 mod display;
 mod help;
 mod mcp;
+mod mcp_client;
 mod version;
 mod ws_client;
 
@@ -17,6 +19,7 @@ use cli::{Cli, Commands, OutputMode};
 use curl_parser::CurlCommand;
 use display::display_response;
 use help::print_doctor;
+use mcp_client::McpClient;
 use version::{check_for_update_notification, update_pcurl};
 
 fn main() {
@@ -144,20 +147,103 @@ fn run_http_argument_mode(command_str: &str, mode: &OutputMode) {
 fn run_mcp_mode(
     url: &str,
     method: &str,
-    params: &str,
+    params_str: &str,
     session_id: Option<String>,
     verbose: bool,
     mode: &OutputMode,
 ) {
-    let sid = mcp::get_or_create_session(session_id);
-    let full_url = format!("{}?session_id={}", url.trim_end_matches('/'), sid);
-    let body = match mcp::build_json_rpc_body(method, params) {
-        Ok(b) => b,
+    let params_value = match serde_json::from_str::<Value>(params_str) {
+        Ok(v) => v,
         Err(e) => {
-            eprintln!("{} {}", "✗".red().bold(), e);
+            eprintln!("{} Invalid JSON in params: {}", "✗".red().bold(), e);
             std::process::exit(1);
         }
     };
+
+    if let Some(sid) = session_id {
+        run_mcp_direct(url, &sid, method, &params_value, verbose, mode);
+    } else {
+        run_mcp_sse(url, method, &params_value, verbose, mode);
+    }
+}
+
+fn run_mcp_sse(url: &str, method: &str, params: &Value, verbose: bool, mode: &OutputMode) {
+    let mut client = match McpClient::connect(url, verbose) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{} MCP connection failed: {}", "✗".red().bold(), e);
+            std::process::exit(1);
+        }
+    };
+
+    println!();
+    println!(
+        "{} {} {}",
+        "MCP".cyan().bold(),
+        "→".dimmed(),
+        url.white().bold()
+    );
+    println!("{}", "─".repeat(64).dimmed());
+
+    let init_result = client.send_request(
+        "initialize",
+        &serde_json::json!({
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "pcurl", "version": env!("CARGO_PKG_VERSION")}
+        }),
+    );
+
+    match init_result {
+        Ok(json) => {
+            if verbose {
+                let server_name = json
+                    .pointer("/result/serverInfo/name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown");
+                let server_version = json
+                    .pointer("/result/serverInfo/version")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                eprintln!(
+                    "  {} Initialized: {} {}",
+                    "✓".green(),
+                    server_name.cyan(),
+                    server_version.dimmed()
+                );
+            }
+        }
+        Err(e) => {
+            eprintln!("  {} Initialize failed: {}", "✗".red().bold(), e);
+            client.close();
+            std::process::exit(1);
+        }
+    }
+
+    let start = Instant::now();
+    let result = client.send_request(method, params);
+    let elapsed = start.elapsed().as_millis();
+
+    match result {
+        Ok(json) => display_mcp_result(&json, elapsed, mode),
+        Err(e) => {
+            eprintln!("  {} {}", "✗".red().bold(), e);
+        }
+    }
+
+    client.close();
+}
+
+fn run_mcp_direct(
+    url: &str,
+    sid: &str,
+    method: &str,
+    params: &Value,
+    verbose: bool,
+    mode: &OutputMode,
+) {
+    let full_url = format!("{}?session_id={}", url.trim_end_matches('/'), sid);
+    let body = mcp::build_json_rpc_body_value(method, params);
 
     if verbose {
         eprintln!("{} Session: {}", "ℹ".cyan(), sid.dimmed());
@@ -179,6 +265,46 @@ fn run_mcp_mode(
     ];
 
     execute_curl_and_stream(&args, url, "MCP", mode);
+}
+
+fn display_mcp_result(json: &Value, elapsed_ms: u128, mode: &OutputMode) {
+    if let Some(result) = json.get("result") {
+        println!(
+            "  {}  {}  {}",
+            "✓".green().bold(),
+            "[OK]".white().bold(),
+            format!("{} ms", elapsed_ms).dimmed()
+        );
+        if !mode.headers_only {
+            println!(
+                "{}",
+                "  ──────────────────────────────────────────────────────".dimmed()
+            );
+            let formatted = serde_json::to_string_pretty(result).unwrap_or_default();
+            for line in formatted.lines() {
+                println!("  {}", line.white());
+            }
+            println!();
+        }
+    } else if let Some(error) = json.get("error") {
+        println!("  {}  {}", "✗".red().bold(), "[ERROR]".red().bold());
+        println!(
+            "{}",
+            "  ──────────────────────────────────────────────────────".dimmed()
+        );
+        let formatted = serde_json::to_string_pretty(error).unwrap_or_default();
+        for line in formatted.lines() {
+            println!("  {}", line.red());
+        }
+        println!();
+    } else if !mode.headers_only {
+        println!(
+            "  {}",
+            serde_json::to_string_pretty(json)
+                .unwrap_or_default()
+                .white()
+        );
+    }
 }
 
 fn execute_curl_and_stream(

@@ -157,23 +157,38 @@ Type messages and press Enter. /quit to exit.
 ### MCP Mode (Model Context Protocol)
 
 ```bash
-# Basic call (session auto-created)
+# Basic call — full protocol cycle: SSE → session_id → initialize → your method
 pcurl mcp http://localhost:8080/mcp/message tools/call '{"name":"test"}'
 
-# With explicit session
+# With explicit session (skips SSE, direct POST)
 pcurl mcp --session-id my-session http://localhost:8080/mcp/message resources/list '{}'
 
-# See the constructed curl command
+# See the full handshake: SSE events, session info, initialize response
 pcurl mcp --verbose http://localhost:8080/mcp/message tools/call '{"name":"test"}'
 ```
 
 Features:
-- **JSON-RPC body** constructed automatically (`jsonrpc`, `id`, `method`, `params`)
-- **Session persistence**: `session_id` saved to `~/.config/pcurl/mcp_session`
-- **SSE streaming**: MCP responses rendered in real-time with `←` prefix
+- **Full protocol cycle**: connects to `/mcp/sse`, obtains `session_id`, sends `initialize`, then your method
+- **JSON-RPC body** constructed automatically via `serde_json` (proper escaping, no injection)
+- **SSE kept open**: responses arrive through the live SSE stream, matched by JSON-RPC `id`
 - **No globbing issues**: JSON params passed as single argument, safe from zsh expansion
-- `--session-id <id>` for explicit session control
-- `--verbose` shows the curl command being executed
+- `--session-id <id>` for explicit session control (direct POST, skips SSE)
+- `--verbose` shows SSE events, session info, initialize handshake, and server info
+
+Example flow with `--verbose`:
+```
+  ↻ SSE http://localhost:8080/mcp/sse
+  ← event: endpoint  data: /mcp/message?session_id=abc-123
+  ✓ Session: abc-123
+  → POST http://localhost:8080/mcp/message?session_id=abc-123
+  → {"jsonrpc":"2.0","id":1,"method":"initialize",...}
+  ← event: message  data: {"jsonrpc":"2.0","id":1,"result":{...}}
+  ✓ Initialized: my-server 1.0
+  → POST http://localhost:8080/mcp/message?session_id=abc-123
+  → {"jsonrpc":"2.0","id":2,"method":"tools/call",...}
+  ← event: message  data: {"jsonrpc":"2.0","id":2,"result":{...}}
+  ✓ [OK]  142 ms
+```
 
 ---
 
@@ -184,7 +199,7 @@ Features:
 | `pcurl [FLAGS] [curl_command]` | HTTP mode (arg or pipe) |
 | `pcurl ws <url> [--verbose]` | WebSocket native mode |
 | `pcurl wscat -c <url> [--verbose]` | wscat-compatible alias |
-| `pcurl mcp <url> <method> <params> [--session-id <id>] [--verbose]` | MCP JSON-RPC call |
+| `pcurl mcp <url> <method> <params> [--session-id <id>] [--verbose]` | MCP JSON-RPC call (full SSE cycle) |
 | `--body-only` | Show only response body |
 | `--headers-only` | Show only headers + status |
 | `--no-color` | Disable colors (also via `NO_COLOR` env) |
@@ -247,7 +262,8 @@ PRs welcome. Code structure:
 - `src/cli.rs` — CLI definitions (clap derive structs)
 - `src/curl_parser.rs` — curl command tokenization and reconstruction
 - `src/display.rs` — HTTP response parsing and display (status, headers, body, JSON, XML)
-- `src/mcp.rs` — MCP session management and JSON-RPC payload construction
+- `src/mcp.rs` — MCP legacy helpers (JSON-RPC body, session persistence)
+- `src/mcp_client.rs` — MCP client: SSE connection, JSON-RPC over SSE/ureq
 - `src/ws_client.rs` — WebSocket client implementation
 - `src/version.rs` — Version checking and self-update
 - `src/help.rs` — Doctor diagnostic
